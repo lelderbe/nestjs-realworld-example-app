@@ -1,0 +1,36 @@
+version: '3'
+
+networks:
+  local:
+    name: conduit
+
+volumes:
+  pg-vol: {}
+
+services:
+  node:
+    build: .
+    depends_on:
+      - postgres
+    networks:
+      - local
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - 5000:3000
+    restart: unless-stopped
+    volumes:
+      - .:/app
+
+  postgres:
+    image: 'postgres:13.4'
+    networks:
+      - local
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - 4000:5432
+    restart: unless-stopped
+    volumes:
+      - pg-vol:/var/lib/postgresql/data
+      - ./create_db.sql:/docker-entrypoint-initdb.d/10-create_db.sql
