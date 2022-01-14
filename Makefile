@@ -7,7 +7,7 @@ bg:
 			docker-compose ${COMPOSE_OPTS} up -d
 
 stop:
-			docker-compose ${COMPOSE_OPTS} stop
+			docker-compose ${COMPOSE_OPTS} down
 
 build:
 			docker-compose ${COMPOSE_OPTS} build

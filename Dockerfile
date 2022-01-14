@@ -5,7 +5,7 @@ STOPSIGNAL SIGKILL
 WORKDIR /app
 EXPOSE 5000
 CMD	\
-	# yarn config set strict-ssl false && \
+	yarn config set strict-ssl false && \
 	# export NODE_TLS_REJECT_UNAUTHORIZED='0' && \
 	yarn install && \
 	yarn build && \
