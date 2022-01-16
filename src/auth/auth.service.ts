@@ -24,7 +24,7 @@ export class AuthService {
 	}
 
 	login(user: User): IAuthResponse {
-		console.log('AuthService login(), user:', user);
+		console.log('AuthService login()');
 		const payload = { username: user.username, sub: user.id };
 		const { id, password, ...rest } = user;
 		const result = new AuthOutput();
@@ -33,16 +33,11 @@ export class AuthService {
 		return {
 			user: result,
 		};
-		// return {
-		// 	access_token: this.jwtService.sign(payload),
-		// 	...user,
-		// };
 	}
 
 	async validateUser(email: string, password: string): Promise<User> {
-		console.log('AuthService validate()', arguments);
+		console.log('AuthService validateUser()');
 		const user = await this.usersService.findOneByEmailWithPassword(email);
-		console.log('user', user);
 		if (!user) {
 			throw new UnauthorizedException('Invalid credentials');
 		}
