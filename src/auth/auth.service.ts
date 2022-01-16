@@ -15,7 +15,7 @@ export class AuthService {
 	) {}
 
 	async register(input: CreateUserInput): Promise<User> {
-		console.log('AuthService register(), input:', input);
+		// console.log('AuthService register(), input:', input);
 		const user = await this.usersService.create(input);
 		if (!user) {
 			throw new UnauthorizedException('Invalid credentials');
@@ -24,7 +24,7 @@ export class AuthService {
 	}
 
 	login(user: User): IAuthResponse {
-		console.log('AuthService login()');
+		// console.log('AuthService login()');
 		const payload = { username: user.username, sub: user.id };
 		const { id, password, ...rest } = user;
 		const result = new AuthOutput();
@@ -36,7 +36,7 @@ export class AuthService {
 	}
 
 	async validateUser(email: string, password: string): Promise<User> {
-		console.log('AuthService validateUser()');
+		// console.log('AuthService validateUser()');
 		const user = await this.usersService.findOneByEmailWithPassword(email);
 		if (!user) {
 			throw new UnauthorizedException('Invalid credentials');

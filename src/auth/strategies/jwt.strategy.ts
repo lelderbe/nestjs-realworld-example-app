@@ -8,7 +8,8 @@ import { User } from '@/users/entities/user.entity';
 export class JwtStrategy extends PassportStrategy(Strategy) {
 	constructor(private readonly usersService: UsersService) {
 		super({
-			jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+			// jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+			jwtFromRequest: ExtractJwt.fromAuthHeaderWithScheme('Token'),
 			// ignoreExpiration: false,
 			ignoreExpiration: true, // temp for dev
 			secretOrKey: process.env.JWT_SECRET,
@@ -16,20 +17,15 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 	}
 
 	async validate(payload: any): Promise<User> {
-		console.log('JwtStrategy validate()');
+		// console.log('JwtStrategy validate()');
 		// additional checks
-		// if (!payload?.sub) {
-		// 	throw new UnauthorizedException('Invalid credentials');
-		// }
-		// try {
-		// 	const user = await this.usersService.findOne(payload.sub);
-		// 	if (!user) {
-		// 		throw new UnauthorizedException('Invalid credentials');
-		// 	}
-		// 	return user;
-		// } catch (error) {
-		// 	throw new UnauthorizedException('Invalid credentials');
-		// }
-		return null;
+		if (!payload?.sub) {
+			throw new UnauthorizedException('Invalid credentials');
+		}
+		const user = await this.usersService.findOne(payload.sub);
+		if (!user) {
+			throw new UnauthorizedException('Invalid credentials');
+		}
+		return user;
 	}
 }

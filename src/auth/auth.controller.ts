@@ -13,7 +13,7 @@ export class AuthController {
 	async register(
 		@Body('user') input: CreateUserInput,
 	): Promise<IAuthResponse> {
-		console.log('AuthController register(), input:', input);
+		// console.log('AuthController register(), input:', input);
 		const user = await this.authService.register(input);
 		return this.authService.login(user);
 	}
@@ -21,7 +21,7 @@ export class AuthController {
 	@UseGuards(LocalAuthGuard)
 	@Post('users/login')
 	async login(@CurrentUser() user): Promise<IAuthResponse> {
-		console.log('AuthController login()');
+		// console.log('AuthController login()');
 		return this.authService.login(user);
 	}
 }
