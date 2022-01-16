@@ -14,15 +14,16 @@ export class UsersController {
 	async register(
 		@Body('user') input: CreateUserInput,
 	): Promise<IUserResponse> {
-		// console.log('AuthController register(), input:', input);
-		const user = await this.usersService.register(input);
+		// console.log('UsersController register(), input:', input);
+		const user = await this.usersService.create(input);
+		// TODO: check user in case create (save) fail
 		return this.usersService.login(user);
 	}
 
 	@UseGuards(LocalAuthGuard)
 	@Post('users/login')
 	async login(@CurrentUser() user): Promise<IUserResponse> {
-		// console.log('AuthController login()');
+		// console.log('UsersController login()');
 		return this.usersService.login(user);
 	}
 

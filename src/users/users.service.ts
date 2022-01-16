@@ -57,17 +57,8 @@ export class UsersService {
 		);
 	}
 
-	async register(input: CreateUserInput): Promise<User> {
-		// console.log('AuthService register(), input:', input);
-		const user = await this.create(input);
-		if (!user) {
-			throw new UnauthorizedException('Invalid credentials');
-		}
-		return user;
-	}
-
 	login(user: User): IUserResponse {
-		// console.log('AuthService login()');
+		// console.log('UsersService login()');
 		const payload = { username: user.username, sub: user.id };
 		const { id, password, ...rest } = user;
 		const result = new UserResponse();
@@ -79,7 +70,7 @@ export class UsersService {
 	}
 
 	async validateUser(email: string, password: string): Promise<User> {
-		// console.log('AuthService validateUser()');
+		// console.log('UsersService validateUser()');
 		const user = await this.findOneByEmailWithPassword(email);
 		if (!user) {
 			throw new UnauthorizedException('Invalid credentials');
