@@ -1,5 +1,5 @@
 import { User } from '@/users/entities/user.entity';
 
-export class AuthOutput extends User {
+export class UserResponse extends User {
 	token: string;
 }

@@ -1,5 +1,5 @@
 import { User } from '@/users/entities/user.entity';
 
-export interface IAuthResponse {
+export interface IUserResponse {
 	user: Omit<User, 'id' | 'password'> & { token: string };
 }

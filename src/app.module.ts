@@ -4,16 +4,10 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TagsModule } from './tags/tags.module';
 import { UsersModule } from './users/users.module';
-import { AuthModule } from './auth/auth.module';
 import config from './ormconfig';
 
 @Module({
-	imports: [
-		TypeOrmModule.forRoot(config),
-		TagsModule,
-		UsersModule,
-		AuthModule,
-	],
+	imports: [TypeOrmModule.forRoot(config), TagsModule, UsersModule],
 	controllers: [AppController],
 	providers: [AppService],
 })
