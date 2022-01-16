@@ -11,6 +11,7 @@ import { UserResponse } from './dto/user.response';
 import { CreateUserInput } from './dto/create-user.input';
 import { User } from './entities/user.entity';
 import { IUserResponse } from './types/user-response.interface';
+import { UpdateUserInput } from './dto/update-user.input';
 
 @Injectable()
 export class UsersService {
@@ -55,6 +56,22 @@ export class UsersService {
 			},
 			{ select: ['id', 'username', 'email', 'password', 'bio', 'image'] },
 		);
+	}
+
+	async update(user: User, input: UpdateUserInput): Promise<User> {
+		const userByEmail = input.email
+			? await this.usersRepository.findOne({ email: input.email })
+			: null;
+		const userByUsername = input.username
+			? await this.usersRepository.findOne({ username: input.username })
+			: null;
+		if (userByEmail || userByUsername) {
+			throw new UnprocessableEntityException(
+				'Email or username are already taken',
+			);
+		}
+		Object.assign(user, input);
+		return this.usersRepository.save(user);
 	}
 
 	login(user: User): IUserResponse {
