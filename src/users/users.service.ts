@@ -13,10 +13,10 @@ export class UsersService {
 
 	async create(input: CreateUserInput): Promise<User> {
 		console.log('UsersService create(), input:', input);
-		const userByEmail = this.usersRepository.findOne({
+		const userByEmail = await this.usersRepository.findOne({
 			email: input.email,
 		});
-		const userByUsername = this.usersRepository.findOne({
+		const userByUsername = await this.usersRepository.findOne({
 			username: input.username,
 		});
 		if (userByEmail || userByUsername) {
@@ -27,5 +27,18 @@ export class UsersService {
 		const user = new User();
 		Object.assign(user, input);
 		return this.usersRepository.save(user);
+	}
+
+	async findOneByEmail(email: string): Promise<User> {
+		return this.usersRepository.findOne({ email });
+	}
+
+	async findOneByEmailWithPassword(email: string): Promise<User> {
+		return this.usersRepository.findOne(
+			{
+				email,
+			},
+			{ select: ['id', 'username', 'email', 'password', 'bio', 'image'] },
+		);
 	}
 }
