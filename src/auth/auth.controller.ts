@@ -13,7 +13,7 @@ export class AuthController {
 
 	@Post('users')
 	async register(@Body('user') input: CreateUserInput): Promise<any> {
-		console.log('input', input);
+		console.log('AuthController register(), input:', input);
 		const user = await this.usersService.create(input);
 		if (!user) {
 			throw new UnauthorizedException('Invalid credentials');

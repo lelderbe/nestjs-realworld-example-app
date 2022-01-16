@@ -13,6 +13,7 @@ export class AuthService {
 	) {}
 
 	login(user: User): IAuthResponse {
+		console.log('AuthService login(), user:', user);
 		const payload = { username: user.username, sub: user.id };
 		const { id, password, ...rest } = user;
 		const result = new AuthOutput();

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnprocessableEntityException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateUserInput } from './dto/create-user.input';
@@ -12,6 +12,18 @@ export class UsersService {
 	) {}
 
 	async create(input: CreateUserInput): Promise<User> {
+		console.log('UsersService create(), input:', input);
+		const userByEmail = this.usersRepository.findOne({
+			email: input.email,
+		});
+		const userByUsername = this.usersRepository.findOne({
+			username: input.username,
+		});
+		if (userByEmail || userByUsername) {
+			throw new UnprocessableEntityException(
+				'Email or username are already taken',
+			);
+		}
 		const user = new User();
 		Object.assign(user, input);
 		return this.usersRepository.save(user);
