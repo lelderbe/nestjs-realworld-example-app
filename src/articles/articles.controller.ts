@@ -5,6 +5,7 @@ import {
 	Get,
 	Param,
 	Post,
+	Put,
 	UseGuards,
 } from '@nestjs/common';
 import { CurrentUser } from '@/users/decorators/user.decorator';
@@ -13,6 +14,7 @@ import { JwtAuthGuard } from '@/users/guards/jwt-auth.guard';
 import { ArticlesService } from './articles.service';
 import { CreateArticleInput } from './dto/create-article.input';
 import { IArticleResponse } from './types/article-response.interface';
+import { UpdateArticleInput } from './dto/update-article.input';
 
 @Controller('articles')
 export class ArticlesController {
@@ -41,5 +43,16 @@ export class ArticlesController {
 		@CurrentUser('id') authorId: string,
 	): Promise<any> {
 		return this.articlesService.delete(slug, authorId);
+	}
+
+	@UseGuards(JwtAuthGuard)
+	@Put(':slug')
+	async update(
+		@Body('article') input: UpdateArticleInput,
+		@Param('slug') slug: string,
+		@CurrentUser('id') userId: string,
+	): Promise<IArticleResponse> {
+		const article = await this.articlesService.update(slug, userId, input);
+		return this.articlesService.buildArticleResponse(article);
 	}
 }

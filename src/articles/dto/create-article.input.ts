@@ -1,4 +1,4 @@
-import { IsNotEmpty } from 'class-validator';
+import { IsNotEmpty, IsOptional } from 'class-validator';
 
 export class CreateArticleInput {
 	@IsNotEmpty()
@@ -10,5 +10,6 @@ export class CreateArticleInput {
 	@IsNotEmpty()
 	readonly body: string;
 
+	@IsOptional()
 	readonly tagList?: string[];
 }
