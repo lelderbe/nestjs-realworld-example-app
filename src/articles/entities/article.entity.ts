@@ -1,9 +1,9 @@
 import {
-	BeforeUpdate,
 	Column,
 	CreateDateColumn,
 	DeleteDateColumn,
 	Entity,
+	ManyToOne,
 	PrimaryGeneratedColumn,
 	UpdateDateColumn,
 } from 'typeorm';
@@ -20,10 +20,10 @@ export class Article {
 	@Column()
 	title: string;
 
-	@Column({ nullable: true })
+	@Column()
 	description: string;
 
-	@Column({ nullable: true })
+	@Column()
 	body: string;
 
 	@Column('simple-array')
@@ -53,7 +53,6 @@ export class Article {
 
 	// Relations
 
-	// many-to-one
-	// @Column()
-	// author: User;
+	@ManyToOne(() => User, (author) => author.articles)
+	author: User;
 }

@@ -1,9 +1,12 @@
+import { ArticlesService } from '@/articles/articles.service';
+import { Article } from '@/articles/entities/article.entity';
 import * as bcrypt from 'bcrypt';
 import {
 	BeforeInsert,
 	BeforeUpdate,
 	Column,
 	Entity,
+	OneToMany,
 	PrimaryGeneratedColumn,
 } from 'typeorm';
 
@@ -33,4 +36,9 @@ export class User {
 		const saltOrRounds = 10;
 		this.password = await bcrypt.hash(this.password, saltOrRounds);
 	}
+
+	// Relations
+
+	@OneToMany(() => Article, (article) => article.author)
+	articles: Article[];
 }
