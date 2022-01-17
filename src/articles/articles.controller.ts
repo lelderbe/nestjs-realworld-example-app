@@ -4,6 +4,7 @@ import { User } from '@/users/entities/user.entity';
 import { JwtAuthGuard } from '@/users/guards/jwt-auth.guard';
 import { ArticlesService } from './articles.service';
 import { CreateArticleInput } from './dto/create-article.input';
+import { IArticleResponse } from './types/article-response.interface';
 
 @Controller('articles')
 export class ArticlesController {
@@ -14,8 +15,8 @@ export class ArticlesController {
 	async create(
 		@Body('article') input: CreateArticleInput,
 		@CurrentUser() user: User,
-	): Promise<any> {
+	): Promise<IArticleResponse> {
 		const article = await this.articlesService.create(input, user);
-		return article;
+		return this.articlesService.buildArticleResponse(article);
 	}
 }
