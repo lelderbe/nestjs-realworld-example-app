@@ -53,6 +53,6 @@ export class Article {
 
 	// Relations
 
-	@ManyToOne(() => User, (author) => author.articles)
+	@ManyToOne(() => User, (author) => author.articles, { eager: true })
 	author: User;
 }

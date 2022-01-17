@@ -1,9 +1,13 @@
-import { Injectable } from '@nestjs/common';
+import {
+	ForbiddenException,
+	Injectable,
+	NotFoundException,
+} from '@nestjs/common';
 import { CreateArticleInput } from './dto/create-article.input';
 import { User } from '@/users/entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Article } from './entities/article.entity';
-import { Repository } from 'typeorm';
+import { Repository, UpdateResult } from 'typeorm';
 import { IArticleResponse } from './types/article-response.interface';
 import slugify from 'slugify';
 
@@ -32,8 +36,20 @@ export class ArticlesService {
 	async findOneBySlug(slug: string): Promise<Article> {
 		return this.articlesRepository.findOne(
 			{ slug },
-			{ relations: ['author'] },
+			// { relations: ['author'] },
 		);
+	}
+
+	async delete(slug: string, authorId: string): Promise<UpdateResult> {
+		const article = await this.findOneBySlug(slug);
+		if (!article) {
+			throw new NotFoundException('Article does not exist');
+		}
+		if (article.author.id !== authorId) {
+			throw new ForbiddenException('You are not owner of this article');
+		}
+		return this.articlesRepository.softDelete({ slug });
+		// return this.articlesRepository.softDelete(article);
 	}
 
 	private getSlug(title: string): string {

@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import {
+	Body,
+	Controller,
+	Delete,
+	Get,
+	Param,
+	Post,
+	UseGuards,
+} from '@nestjs/common';
 import { CurrentUser } from '@/users/decorators/user.decorator';
 import { User } from '@/users/entities/user.entity';
 import { JwtAuthGuard } from '@/users/guards/jwt-auth.guard';
@@ -24,5 +32,14 @@ export class ArticlesController {
 	async findOne(@Param('slug') slug: string): Promise<IArticleResponse> {
 		const article = await this.articlesService.findOneBySlug(slug);
 		return this.articlesService.buildArticleResponse(article);
+	}
+
+	@UseGuards(JwtAuthGuard)
+	@Delete(':slug')
+	async delete(
+		@Param('slug') slug: string,
+		@CurrentUser('id') authorId: string,
+	): Promise<any> {
+		return this.articlesService.delete(slug, authorId);
 	}
 }
