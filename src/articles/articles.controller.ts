@@ -1,4 +1,4 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '@/users/decorators/user.decorator';
 import { User } from '@/users/entities/user.entity';
 import { JwtAuthGuard } from '@/users/guards/jwt-auth.guard';
@@ -17,6 +17,12 @@ export class ArticlesController {
 		@CurrentUser() user: User,
 	): Promise<IArticleResponse> {
 		const article = await this.articlesService.create(input, user);
+		return this.articlesService.buildArticleResponse(article);
+	}
+
+	@Get(':slug')
+	async findOne(@Param('slug') slug: string): Promise<IArticleResponse> {
+		const article = await this.articlesService.findOneBySlug(slug);
 		return this.articlesService.buildArticleResponse(article);
 	}
 }

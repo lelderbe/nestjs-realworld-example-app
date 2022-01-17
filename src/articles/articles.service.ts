@@ -29,6 +29,13 @@ export class ArticlesService {
 		return this.articlesRepository.save(article);
 	}
 
+	async findOneBySlug(slug: string): Promise<Article> {
+		return this.articlesRepository.findOne(
+			{ slug },
+			{ relations: ['author'] },
+		);
+	}
+
 	private getSlug(title: string): string {
 		function getRandomPart(): string {
 			return '-' + ((Math.random() * Math.pow(36, 6)) | 0).toString(36);
