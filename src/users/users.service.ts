@@ -1,4 +1,5 @@
 import * as bcrypt from 'bcrypt';
+import * as jsonwebtoken from 'jsonwebtoken';
 import {
 	Injectable,
 	UnauthorizedException,
@@ -74,16 +75,32 @@ export class UsersService {
 		return this.usersRepository.save(user);
 	}
 
+	generateJwt(user: User): string {
+		const payload = { username: user.username, sub: user.id };
+		return jsonwebtoken.sign(payload, process.env.JWT_SECRET, {
+			expiresIn: '1h',
+		});
+	}
+
 	login(user: User): IUserResponse {
 		// console.log('UsersService login()');
 		const payload = { username: user.username, sub: user.id };
 		const { id, password, ...rest } = user;
 		const result = new UserResponse();
+		// TODO: maybe just take rest?
 		Object.assign(result, rest);
 		result.token = this.jwtService.sign(payload);
+		// result.token = this.generateJwt(user);
 		return {
 			user: result,
 		};
+	}
+
+	buildUserResponse(user: User): IUserResponse {
+		if (!user) {
+			throw new UnauthorizedException('Not authorized');
+		}
+		return this.login(user);
 	}
 
 	async validateUser(email: string, password: string): Promise<User> {

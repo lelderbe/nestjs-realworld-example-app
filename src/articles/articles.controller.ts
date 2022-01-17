@@ -20,6 +20,11 @@ import { UpdateArticleInput } from './dto/update-article.input';
 export class ArticlesController {
 	constructor(private readonly articlesService: ArticlesService) {}
 
+	@Get()
+	async findAll() {
+		return this.articlesService.findAll();
+	}
+
 	@UseGuards(JwtAuthGuard)
 	@Post()
 	async create(

@@ -23,6 +23,11 @@ export class ArticlesService {
 		return { article };
 	}
 
+	async findAll() {
+		const result = this.articlesRepository.find();
+		return result;
+	}
+
 	async create(input: CreateArticleInput, user: User): Promise<Article> {
 		const article = new Article();
 		Object.assign(article, input);
