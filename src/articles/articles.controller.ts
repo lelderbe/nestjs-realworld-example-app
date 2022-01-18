@@ -10,11 +10,11 @@ import {
 } from '@nestjs/common';
 import { CurrentUser } from '@/users/decorators/user.decorator';
 import { User } from '@/users/entities/user.entity';
-import { JwtAuthGuard } from '@/users/guards/jwt-auth.guard';
 import { ArticlesService } from './articles.service';
 import { CreateArticleInput } from './dto/create-article.input';
 import { IArticleResponse } from './types/article-response.interface';
 import { UpdateArticleInput } from './dto/update-article.input';
+import { AuthGuard } from '@/users/guards/auth.guard';
 
 @Controller('articles')
 export class ArticlesController {
@@ -25,7 +25,7 @@ export class ArticlesController {
 		return this.articlesService.findAll();
 	}
 
-	@UseGuards(JwtAuthGuard)
+	@UseGuards(AuthGuard)
 	@Post()
 	async create(
 		@Body('article') input: CreateArticleInput,
@@ -41,7 +41,7 @@ export class ArticlesController {
 		return this.articlesService.buildArticleResponse(article);
 	}
 
-	@UseGuards(JwtAuthGuard)
+	@UseGuards(AuthGuard)
 	@Delete(':slug')
 	async delete(
 		@Param('slug') slug: string,
@@ -50,7 +50,7 @@ export class ArticlesController {
 		return this.articlesService.delete(slug, authorId);
 	}
 
-	@UseGuards(JwtAuthGuard)
+	@UseGuards(AuthGuard)
 	@Put(':slug')
 	async update(
 		@Body('article') input: UpdateArticleInput,

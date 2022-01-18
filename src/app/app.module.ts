@@ -2,11 +2,11 @@ import { MiddlewareConsumer, Module, RequestMethod } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { TagsModule } from './tags/tags.module';
-import { UsersModule } from './users/users.module';
-import { ArticlesModule } from './articles/articles.module';
-import config from './ormconfig';
-import { AuthMiddleware } from './users/middlewares/auth.middleware';
+import { TagsModule } from '@/tags/tags.module';
+import { UsersModule } from '@/users/users.module';
+import { ArticlesModule } from '@/articles/articles.module';
+import config from '../ormconfig';
+import { AuthMiddleware } from '@/users/middlewares/auth.middleware';
 
 @Module({
 	imports: [

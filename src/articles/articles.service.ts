@@ -3,13 +3,13 @@ import {
 	Injectable,
 	NotFoundException,
 } from '@nestjs/common';
+import slugify from 'slugify';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, UpdateResult } from 'typeorm';
 import { CreateArticleInput } from './dto/create-article.input';
 import { User } from '@/users/entities/user.entity';
-import { InjectRepository } from '@nestjs/typeorm';
 import { Article } from './entities/article.entity';
-import { Repository, UpdateResult } from 'typeorm';
 import { IArticleResponse } from './types/article-response.interface';
-import slugify from 'slugify';
 import { UpdateArticleInput } from './dto/update-article.input';
 
 @Injectable()

@@ -5,10 +5,8 @@ import {
 	UnauthorizedException,
 	UnprocessableEntityException,
 } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { UserResponse } from './dto/user.response';
+import { InjectRepository } from '@nestjs/typeorm';
 import { CreateUserInput } from './dto/create-user.input';
 import { User } from './entities/user.entity';
 import { IUserResponse } from './types/user-response.interface';
@@ -19,11 +17,9 @@ export class UsersService {
 	constructor(
 		@InjectRepository(User)
 		private readonly usersRepository: Repository<User>,
-		private readonly jwtService: JwtService,
 	) {}
 
 	async create(input: CreateUserInput): Promise<User> {
-		console.log('UsersService create(), input:', input);
 		// TODO: make it better - use citext maybe
 		// mail@mail.ru == MAIL@mail.ru atm
 		const userByEmail = await this.usersRepository.findOne({
@@ -60,12 +56,16 @@ export class UsersService {
 	}
 
 	async update(user: User, input: UpdateUserInput): Promise<User> {
-		const userByEmail = input.email
-			? await this.usersRepository.findOne({ email: input.email })
-			: null;
-		const userByUsername = input.username
-			? await this.usersRepository.findOne({ username: input.username })
-			: null;
+		const userByEmail =
+			input.email && user.email !== input.email
+				? await this.usersRepository.findOne({ email: input.email })
+				: null;
+		const userByUsername =
+			input.username && user.username !== input.username
+				? await this.usersRepository.findOne({
+					username: input.username,
+				})
+				: null;
 		if (userByEmail || userByUsername) {
 			throw new UnprocessableEntityException(
 				'Email or username are already taken',
@@ -75,39 +75,29 @@ export class UsersService {
 		return this.usersRepository.save(user);
 	}
 
-	generateJwt(user: User): string {
-		const payload = { username: user.username, sub: user.id };
-		return sign(payload, process.env.JWT_SECRET, {
-			expiresIn: '1h',
-		});
-	}
-
-	login(user: User): IUserResponse {
-		// console.log('UsersService login()');
-		const payload = { username: user.username, sub: user.id };
-		const { id, password, ...rest } = user;
-		const result = new UserResponse();
-		Object.assign(result, rest);
-		// result.token = this.jwtService.sign(payload);
-		result.token = this.generateJwt(user);
-		return {
-			user: result,
-		};
+	async getValidateUser(email: string, password: string): Promise<User> {
+		const user = await this.findOneByEmailWithPassword(email);
+		if (!user || !(await bcrypt.compare(password, user.password))) {
+			throw new UnauthorizedException('Invalid credentials');
+		}
+		return user;
 	}
 
 	buildUserResponse(user: User): IUserResponse {
 		if (!user) {
 			throw new UnauthorizedException('Not authorized');
 		}
-		return this.login(user);
+		const { id, password, ...rest } = user;
+		// TODO: make some object return?
+		return {
+			user: { ...rest, token: this.generateJwt(user) },
+		};
 	}
 
-	async validateUser(email: string, password: string): Promise<User> {
-		// console.log('UsersService validateUser()');
-		const user = await this.findOneByEmailWithPassword(email);
-		if (!user || !(await bcrypt.compare(password, user.password))) {
-			throw new UnauthorizedException('Invalid credentials');
-		}
-		return user;
+	private generateJwt(user: User): string {
+		const payload = { username: user.username, sub: user.id };
+		return sign(payload, process.env.JWT_SECRET, {
+			expiresIn: '1h',
+		});
 	}
 }

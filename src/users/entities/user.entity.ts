@@ -32,8 +32,10 @@ export class User {
 	@BeforeInsert()
 	@BeforeUpdate()
 	async hashPassword() {
-		const saltOrRounds = 10;
-		this.password = await bcrypt.hash(this.password, saltOrRounds);
+		if (this.password) {
+			const saltOrRounds = 10;
+			this.password = await bcrypt.hash(this.password, saltOrRounds);
+		}
 	}
 
 	// Relations
