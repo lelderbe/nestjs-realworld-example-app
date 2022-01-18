@@ -1,7 +1,8 @@
-import { IsNotEmpty, IsOptional } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateArticleInput {
 	@IsNotEmpty()
+	@IsString()
 	readonly title: string;
 
 	@IsNotEmpty()
@@ -11,5 +12,6 @@ export class CreateArticleInput {
 	readonly body: string;
 
 	@IsOptional()
+	@IsString({ each: true })
 	readonly tagList?: string[];
 }

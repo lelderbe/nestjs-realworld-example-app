@@ -1,5 +1,5 @@
 import * as bcrypt from 'bcrypt';
-import * as jsonwebtoken from 'jsonwebtoken';
+import { sign } from 'jsonwebtoken';
 import {
 	Injectable,
 	UnauthorizedException,
@@ -24,7 +24,7 @@ export class UsersService {
 
 	async create(input: CreateUserInput): Promise<User> {
 		console.log('UsersService create(), input:', input);
-		// TODO: make better - use citext maybe
+		// TODO: make it better - use citext maybe
 		// mail@mail.ru == MAIL@mail.ru atm
 		const userByEmail = await this.usersRepository.findOne({
 			email: input.email,
@@ -77,7 +77,7 @@ export class UsersService {
 
 	generateJwt(user: User): string {
 		const payload = { username: user.username, sub: user.id };
-		return jsonwebtoken.sign(payload, process.env.JWT_SECRET, {
+		return sign(payload, process.env.JWT_SECRET, {
 			expiresIn: '1h',
 		});
 	}
@@ -87,10 +87,9 @@ export class UsersService {
 		const payload = { username: user.username, sub: user.id };
 		const { id, password, ...rest } = user;
 		const result = new UserResponse();
-		// TODO: maybe just take rest?
 		Object.assign(result, rest);
-		result.token = this.jwtService.sign(payload);
-		// result.token = this.generateJwt(user);
+		// result.token = this.jwtService.sign(payload);
+		result.token = this.generateJwt(user);
 		return {
 			user: result,
 		};
@@ -106,12 +105,7 @@ export class UsersService {
 	async validateUser(email: string, password: string): Promise<User> {
 		// console.log('UsersService validateUser()');
 		const user = await this.findOneByEmailWithPassword(email);
-		if (!user) {
-			throw new UnauthorizedException('Invalid credentials');
-		}
-		const hash = user.password;
-		const isPasswordMatch = await bcrypt.compare(password, hash);
-		if (!isPasswordMatch) {
+		if (!user || !(await bcrypt.compare(password, user.password))) {
 			throw new UnauthorizedException('Invalid credentials');
 		}
 		return user;

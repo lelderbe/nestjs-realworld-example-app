@@ -43,7 +43,7 @@ export class Article {
 	// }
 
 	@DeleteDateColumn({ type: 'timestamp' })
-	deletedAt: Date; //"2016-02-18T03:48:35.824Z",
+	deletedAt: Date;
 
 	// @Column(() => Boolean)
 	// favorited: boolean; // false

@@ -1,5 +1,3 @@
-import { ArticlesService } from '@/articles/articles.service';
-import { Article } from '@/articles/entities/article.entity';
 import * as bcrypt from 'bcrypt';
 import {
 	BeforeInsert,
@@ -9,6 +7,7 @@ import {
 	OneToMany,
 	PrimaryGeneratedColumn,
 } from 'typeorm';
+import { Article } from '@/articles/entities/article.entity';
 
 @Entity('users')
 export class User {

@@ -1,7 +1,9 @@
 import { Body, Controller, Get, Post, Put, UseGuards } from '@nestjs/common';
 import { CurrentUser } from './decorators/user.decorator';
 import { CreateUserInput } from './dto/create-user.input';
+import { LoginUserInput } from './dto/login-user.input';
 import { UpdateUserInput } from './dto/update-user.input';
+import { User } from './entities/user.entity';
 import { AuthGuard } from './guards/auth.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { LocalAuthGuard } from './guards/local-auth.guard';
@@ -19,30 +21,40 @@ export class UsersController {
 		// console.log('UsersController register(), input:', input);
 		const user = await this.usersService.create(input);
 		// TODO: check user in case create (save) fail
-		return this.usersService.login(user);
+		return this.usersService.buildUserResponse(user);
+		// return this.usersService.login(user);
 	}
 
-	@UseGuards(LocalAuthGuard)
+	// @UseGuards(LocalAuthGuard)
+	// @Post('users/login')
+	// async login(@CurrentUser() user: User): Promise<IUserResponse> {
+	// 	return this.usersService.login(user);
+	// }
+
 	@Post('users/login')
-	async login(@CurrentUser() user): Promise<IUserResponse> {
-		// console.log('UsersController login()');
-		return this.usersService.login(user);
+	async login(@Body('user') input: LoginUserInput): Promise<IUserResponse> {
+		const user = await this.usersService.validateUser(
+			input.email,
+			input.password,
+		);
+		return this.usersService.buildUserResponse(user);
+		// return this.usersService.login(user);
 	}
 
-	// @UseGuards(JwtAuthGuard)
 	@UseGuards(AuthGuard)
 	@Get('user')
-	async findOne(@CurrentUser() user): Promise<IUserResponse> {
+	async findOne(@CurrentUser() user: User): Promise<IUserResponse> {
 		return this.usersService.buildUserResponse(user);
 	}
 
-	// @UseGuards(JwtAuthGuard)
+	@UseGuards(AuthGuard)
 	@Put('user')
 	async update(
 		@Body('user') input: UpdateUserInput,
-		@CurrentUser() user,
+		@CurrentUser() user: User,
 	): Promise<IUserResponse> {
 		user = await this.usersService.update(user, input);
-		return this.usersService.login(user);
+		return this.usersService.buildUserResponse(user);
+		// return this.usersService.login(user);
 	}
 }
