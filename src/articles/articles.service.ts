@@ -2,7 +2,6 @@ import {
 	ForbiddenException,
 	Injectable,
 	NotFoundException,
-	UnprocessableEntityException,
 } from '@nestjs/common';
 import slugify from 'slugify';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -10,8 +9,9 @@ import { Repository, UpdateResult } from 'typeorm';
 import { CreateArticleInput } from './dto/create-article.input';
 import { User } from '@/users/entities/user.entity';
 import { Article } from './entities/article.entity';
-import { IArticleResponse } from './types/article-response.interface';
 import { UpdateArticleInput } from './dto/update-article.input';
+import { IArticleResponse } from './types/article-response.interface';
+import { IArticlesResponse } from './types/articles-response.interface';
 
 @Injectable()
 export class ArticlesService {
@@ -20,9 +20,35 @@ export class ArticlesService {
 		private readonly articlesRepository: Repository<Article>,
 	) {}
 
-	async findAll(): Promise<Article[]> {
-		const result = this.articlesRepository.find();
-		return result;
+	async findAll(filter: any, userId: string): Promise<IArticlesResponse> {
+		filter.offset = filter.offset ? filter.offset : 0;
+		filter.limit = filter.limit ? filter.limit : 10;
+		// let qBuilder = getRepository(Article).createQueryBuilder('articles');
+		let qBuilder = this.articlesRepository.createQueryBuilder('articles');
+		qBuilder = qBuilder.leftJoinAndSelect('articles.author', 'author');
+		if (filter.author) {
+			qBuilder = qBuilder.andWhere('author.username = :authorUsername', {
+				authorUsername: filter.author,
+			});
+		}
+		if (filter.tag) {
+			qBuilder = qBuilder.andWhere('(:tag = ANY (articles.tagList))', {
+				tag: filter.tag,
+			});
+		}
+		qBuilder = qBuilder
+			.skip(filter.offset)
+			.take(filter.limit)
+			// .offset(filter.offset)
+			// .limit(filter.limit)
+			.orderBy('articles.updatedAt', 'DESC');
+
+		const [articles, articlesCount] = await qBuilder.getManyAndCount();
+		// return qBuilder.getMany();
+		return { articles, articlesCount };
+
+		// const result = this.articlesRepository.find();
+		// return result;
 	}
 
 	async create(input: CreateArticleInput, user: User): Promise<Article> {
@@ -103,5 +129,9 @@ export class ArticlesService {
 
 	buildArticleResponse(article: Article): IArticleResponse {
 		return { article };
+	}
+
+	buildArticlesResponse(articles: Article[]): IArticlesResponse {
+		return { articles, articlesCount: articles.length };
 	}
 }

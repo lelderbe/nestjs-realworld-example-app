@@ -9,7 +9,7 @@ import {
 } from 'typeorm';
 import { User } from '@/users/entities/user.entity';
 
-@Entity('articles ')
+@Entity('articles')
 export class Article {
 	@PrimaryGeneratedColumn('uuid')
 	id: string;
@@ -26,10 +26,13 @@ export class Article {
 	@Column()
 	body: string;
 
-	@Column('simple-array')
+	// @Column('simple-array')
+	// @Column({ name: 'tag_list', type: 'varchar', array: true })
+	@Column({ type: 'varchar', array: true })
 	tagList: string[]; //["dragons", "training"],
 
 	// @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+	// @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
 	@CreateDateColumn({ type: 'timestamp' })
 	createdAt: Date;
 

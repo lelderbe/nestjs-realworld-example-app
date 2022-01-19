@@ -1,4 +1,5 @@
 import { ConnectionOptions } from 'typeorm';
+// import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
 
 const config: ConnectionOptions = {
 	type: process.env.TYPEORM_CONNECTION as 'postgres' | 'mysql',
@@ -18,6 +19,7 @@ const config: ConnectionOptions = {
 	cli: {
 		migrationsDir: 'migrations',
 	},
+	// namingStrategy: new SnakeNamingStrategy(),
 };
 
 export default config;
