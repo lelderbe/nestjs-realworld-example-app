@@ -2,6 +2,7 @@ import {
 	ForbiddenException,
 	Injectable,
 	NotFoundException,
+	UnprocessableEntityException,
 } from '@nestjs/common';
 import slugify from 'slugify';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -19,22 +20,27 @@ export class ArticlesService {
 		private readonly articlesRepository: Repository<Article>,
 	) {}
 
-	buildArticleResponse(article: Article): IArticleResponse {
-		return { article };
-	}
-
-	async findAll() {
+	async findAll(): Promise<Article[]> {
 		const result = this.articlesRepository.find();
 		return result;
 	}
 
 	async create(input: CreateArticleInput, user: User): Promise<Article> {
+		const slug = this.getSlug(input.title);
+		// if (await this.findOneBySlug(slug)) {
+		// 	throw new UnprocessableEntityException(
+		// 		'There is already article with such title',
+		// 	);
+		// }
 		const article = new Article();
 		Object.assign(article, input);
+		// const article = Object.assign(new Article(), input);
+		// TODO: make this field nullable?
 		if (!article.tagList) {
 			article.tagList = [];
 		}
-		article.slug = this.getSlug(article.title);
+		// article.slug = this.getSlug(article.title);
+		article.slug = slug;
 		article.author = user;
 		return this.articlesRepository.save(article);
 	}
@@ -43,12 +49,16 @@ export class ArticlesService {
 		return this.articlesRepository.findOne({ slug });
 	}
 
-	async delete(slug: string, authorId: string): Promise<UpdateResult> {
+	async findOneByTitle(title: string): Promise<Article> {
+		return this.articlesRepository.findOne({ title });
+	}
+
+	async delete(slug: string, userId: string): Promise<UpdateResult> {
 		const article = await this.findOneBySlug(slug);
 		if (!article) {
 			throw new NotFoundException('Article does not exist');
 		}
-		if (article.author.id !== authorId) {
+		if (article.author.id !== userId) {
 			throw new ForbiddenException('You are not owner of this article');
 		}
 		return this.articlesRepository.softDelete({ slug });
@@ -67,6 +77,14 @@ export class ArticlesService {
 		if (article.author.id !== userId) {
 			throw new ForbiddenException('You are not owner of this article');
 		}
+		// if (input.title && article.title !== input.title) {
+		// 	const articleByTitle = await this.findOneByTitle(input.title);
+		// 	if (articleByTitle) {
+		// 		throw new UnprocessableEntityException(
+		// 			'There is already article with such title',
+		// 		);
+		// 	}
+		// }
 		Object.assign(article, input);
 		if (input.title) {
 			article.slug = this.getSlug(article.title);
@@ -79,7 +97,11 @@ export class ArticlesService {
 			return '-' + ((Math.random() * Math.pow(36, 6)) | 0).toString(36);
 		}
 
-		return slugify(title, { lower: true });
-		// return slugify(title, { lower: true }) + getRandomPart();
+		// return slugify(title, { lower: true });
+		return slugify(title, { lower: true }) + getRandomPart();
+	}
+
+	buildArticleResponse(article: Article): IArticleResponse {
+		return { article };
 	}
 }

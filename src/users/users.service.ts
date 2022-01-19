@@ -55,6 +55,7 @@ export class UsersService {
 		);
 	}
 
+	// TODO: how about accept userId instead of user object
 	async update(user: User, input: UpdateUserInput): Promise<User> {
 		const userByEmail =
 			input.email && user.email !== input.email

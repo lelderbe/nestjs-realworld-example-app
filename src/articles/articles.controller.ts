@@ -27,7 +27,7 @@ export class ArticlesController {
 
 	@UseGuards(AuthGuard)
 	@Post()
-	async create(
+	async createArticle(
 		@Body('article') input: CreateArticleInput,
 		@CurrentUser() user: User,
 	): Promise<IArticleResponse> {
@@ -36,23 +36,23 @@ export class ArticlesController {
 	}
 
 	@Get(':slug')
-	async findOne(@Param('slug') slug: string): Promise<IArticleResponse> {
+	async getArticle(@Param('slug') slug: string): Promise<IArticleResponse> {
 		const article = await this.articlesService.findOneBySlug(slug);
 		return this.articlesService.buildArticleResponse(article);
 	}
 
 	@UseGuards(AuthGuard)
 	@Delete(':slug')
-	async delete(
+	async deleteArticle(
 		@Param('slug') slug: string,
-		@CurrentUser('id') authorId: string,
+		@CurrentUser('id') userId: string,
 	): Promise<any> {
-		return this.articlesService.delete(slug, authorId);
+		return this.articlesService.delete(slug, userId);
 	}
 
 	@UseGuards(AuthGuard)
 	@Put(':slug')
-	async update(
+	async updateArticle(
 		@Body('article') input: UpdateArticleInput,
 		@Param('slug') slug: string,
 		@CurrentUser('id') userId: string,

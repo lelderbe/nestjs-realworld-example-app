@@ -49,7 +49,7 @@ export class Article {
 	// favorited: boolean; // false
 
 	@Column({ default: 0 })
-	favoritesCount: number; // 0
+	favoritesCount: number;
 
 	// Relations
 
