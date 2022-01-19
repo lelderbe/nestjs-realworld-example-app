@@ -26,13 +26,10 @@ export class Article {
 	@Column()
 	body: string;
 
-	// @Column('simple-array')
-	// @Column({ name: 'tag_list', type: 'varchar', array: true })
-	@Column({ type: 'varchar', array: true })
-	tagList: string[]; //["dragons", "training"],
+	@Column({ type: 'varchar', array: true, nullable: true })
+	tagList: string[];
 
 	// @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-	// @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
 	@CreateDateColumn({ type: 'timestamp' })
 	createdAt: Date;
 

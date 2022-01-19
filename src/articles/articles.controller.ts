@@ -17,6 +17,7 @@ import { IArticleResponse } from './types/article-response.interface';
 import { UpdateArticleInput } from './dto/update-article.input';
 import { AuthGuard } from '@/users/guards/auth.guard';
 import { IArticlesResponse } from './types/articles-response.interface';
+import { FilterArticleInput } from './dto/filter-article.input';
 
 @Controller('articles')
 export class ArticlesController {
@@ -24,7 +25,7 @@ export class ArticlesController {
 
 	@Get()
 	async findAll(
-		@Query() filter: any,
+		@Query() filter: FilterArticleInput,
 		@CurrentUser('id') userId: string,
 	): Promise<IArticlesResponse> {
 		console.log('userId', userId);

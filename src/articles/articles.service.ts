@@ -12,17 +12,39 @@ import { Article } from './entities/article.entity';
 import { UpdateArticleInput } from './dto/update-article.input';
 import { IArticleResponse } from './types/article-response.interface';
 import { IArticlesResponse } from './types/articles-response.interface';
+import { TagsService } from '@/tags/tags.service';
+import { FilterArticleInput } from './dto/filter-article.input';
+import { LIMIT, OFFSET } from '@/app/constants';
 
 @Injectable()
 export class ArticlesService {
 	constructor(
 		@InjectRepository(Article)
 		private readonly articlesRepository: Repository<Article>,
+		private readonly tagsService: TagsService,
 	) {}
 
-	async findAll(filter: any, userId: string): Promise<IArticlesResponse> {
-		filter.offset = filter.offset ? filter.offset : 0;
-		filter.limit = filter.limit ? filter.limit : 10;
+	async create(input: CreateArticleInput, user: User): Promise<Article> {
+		const article = new Article();
+		Object.assign(article, input);
+		// const article = Object.assign(new Article(), input);
+		if (article.tagList) {
+			article.tagList.forEach((title) => {
+				this.tagsService.createIfNotExists(title);
+			});
+		}
+		article.slug = this.getSlug(article.title);
+		article.author = user;
+		return this.articlesRepository.save(article);
+	}
+
+	async findAll(
+		filter: FilterArticleInput,
+		userId: string,
+	): Promise<IArticlesResponse> {
+		filter.offset = filter.offset ? filter.offset : OFFSET;
+		filter.limit = filter.limit ? filter.limit : LIMIT;
+		console.log('filter', filter);
 		// let qBuilder = getRepository(Article).createQueryBuilder('articles');
 		let qBuilder = this.articlesRepository.createQueryBuilder('articles');
 		qBuilder = qBuilder.leftJoinAndSelect('articles.author', 'author');
@@ -44,31 +66,7 @@ export class ArticlesService {
 			.orderBy('articles.updatedAt', 'DESC');
 
 		const [articles, articlesCount] = await qBuilder.getManyAndCount();
-		// return qBuilder.getMany();
 		return { articles, articlesCount };
-
-		// const result = this.articlesRepository.find();
-		// return result;
-	}
-
-	async create(input: CreateArticleInput, user: User): Promise<Article> {
-		const slug = this.getSlug(input.title);
-		// if (await this.findOneBySlug(slug)) {
-		// 	throw new UnprocessableEntityException(
-		// 		'There is already article with such title',
-		// 	);
-		// }
-		const article = new Article();
-		Object.assign(article, input);
-		// const article = Object.assign(new Article(), input);
-		// TODO: make this field nullable?
-		if (!article.tagList) {
-			article.tagList = [];
-		}
-		// article.slug = this.getSlug(article.title);
-		article.slug = slug;
-		article.author = user;
-		return this.articlesRepository.save(article);
 	}
 
 	async findOneBySlug(slug: string): Promise<Article> {
@@ -77,18 +75,6 @@ export class ArticlesService {
 
 	async findOneByTitle(title: string): Promise<Article> {
 		return this.articlesRepository.findOne({ title });
-	}
-
-	async delete(slug: string, userId: string): Promise<UpdateResult> {
-		const article = await this.findOneBySlug(slug);
-		if (!article) {
-			throw new NotFoundException('Article does not exist');
-		}
-		if (article.author.id !== userId) {
-			throw new ForbiddenException('You are not owner of this article');
-		}
-		return this.articlesRepository.softDelete({ slug });
-		// return this.articlesRepository.softDelete(article);
 	}
 
 	async update(
@@ -103,19 +89,23 @@ export class ArticlesService {
 		if (article.author.id !== userId) {
 			throw new ForbiddenException('You are not owner of this article');
 		}
-		// if (input.title && article.title !== input.title) {
-		// 	const articleByTitle = await this.findOneByTitle(input.title);
-		// 	if (articleByTitle) {
-		// 		throw new UnprocessableEntityException(
-		// 			'There is already article with such title',
-		// 		);
-		// 	}
-		// }
 		Object.assign(article, input);
 		if (input.title) {
 			article.slug = this.getSlug(article.title);
 		}
 		return this.articlesRepository.save(article);
+	}
+
+	async delete(slug: string, userId: string): Promise<UpdateResult> {
+		const article = await this.findOneBySlug(slug);
+		if (!article) {
+			throw new NotFoundException('Article does not exist');
+		}
+		if (article.author.id !== userId) {
+			throw new ForbiddenException('You are not owner of this article');
+		}
+		return this.articlesRepository.softDelete({ slug });
+		// return this.articlesRepository.softDelete(article);
 	}
 
 	private getSlug(title: string): string {

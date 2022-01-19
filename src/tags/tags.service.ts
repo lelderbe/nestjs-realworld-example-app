@@ -12,4 +12,18 @@ export class TagsService {
 	async findAll(): Promise<Tag[]> {
 		return this.tagsRepository.find();
 	}
+
+	async findOne(title: string): Promise<Tag> {
+		return this.tagsRepository.findOne({ title });
+	}
+
+	async createIfNotExists(title: string): Promise<Tag> {
+		let tag = await this.findOne(title);
+		if (tag) {
+			return tag;
+		}
+		tag = new Tag();
+		tag.title = title;
+		return this.tagsRepository.save(tag);
+	}
 }

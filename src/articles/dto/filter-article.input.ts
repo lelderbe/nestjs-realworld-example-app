@@ -1,12 +1,13 @@
-import { IsNumber, IsOptional, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsOptional, IsString } from 'class-validator';
 
 export class FilterArticleInput {
 	@IsOptional()
-	@IsNumber()
+	@Type(() => Number)
 	offset?: number;
 
 	@IsOptional()
-	@IsNumber()
+	@Type(() => Number)
 	limit?: number;
 
 	@IsOptional()

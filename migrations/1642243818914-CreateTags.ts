@@ -9,9 +9,7 @@ export class CreateTags1642243818914 implements MigrationInterface {
 		);
 		await queryRunner.query(`
 			INSERT INTO "tags"(title) VALUES
-				('JavaScript'),
-				('Python'),
-				('Go');
+				('JavaScript');
 		`);
 	}
 
