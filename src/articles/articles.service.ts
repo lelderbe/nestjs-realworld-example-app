@@ -15,6 +15,8 @@ import { IArticlesResponse } from './types/articles-response.interface';
 import { TagsService } from '@/tags/tags.service';
 import { FilterArticleInput } from './dto/filter-article.input';
 import { LIMIT, OFFSET } from '@/app/constants';
+import { UsersService } from '@/users/users.service';
+import { ArticleType } from './types/article.type';
 
 @Injectable()
 export class ArticlesService {
@@ -22,6 +24,7 @@ export class ArticlesService {
 		@InjectRepository(Article)
 		private readonly articlesRepository: Repository<Article>,
 		private readonly tagsService: TagsService,
+		private readonly usersService: UsersService,
 	) {}
 
 	async create(input: CreateArticleInput, user: User): Promise<Article> {
@@ -54,19 +57,32 @@ export class ArticlesService {
 			});
 		}
 		if (filter.tag) {
-			qBuilder = qBuilder.andWhere('(:tag = ANY (articles.tagList))', {
+			qBuilder = qBuilder.andWhere(':tag = ANY (articles.tagList)', {
 				tag: filter.tag,
 			});
 		}
+		if (filter.favorited) {
+			const user = await this.usersService.findOneByNameWithFavorites(
+				filter.favorited,
+			);
+			if (user) {
+				const ids = user.favorites.map((article) => article.id);
+				ids.push(null);
+				console.log('ids', ids);
+				qBuilder = qBuilder.andWhere('articles.id IN (:...ids)', {
+					ids,
+				});
+			}
+		}
+
 		qBuilder = qBuilder
 			.skip(filter.offset)
 			.take(filter.limit)
 			// .offset(filter.offset)
 			// .limit(filter.limit)
 			.orderBy('articles.updatedAt', 'DESC');
-
 		const [articles, articlesCount] = await qBuilder.getManyAndCount();
-		return { articles, articlesCount };
+		return this.buildArticlesResponse(articles, articlesCount, userId);
 	}
 
 	async findOneBySlug(slug: string): Promise<Article> {
@@ -108,6 +124,44 @@ export class ArticlesService {
 		// return this.articlesRepository.softDelete(article);
 	}
 
+	async addArticleToFavorites(
+		slug: string,
+		userId: string,
+	): Promise<Article> {
+		const article = await this.findOneBySlug(slug);
+		if (!article) {
+			throw new NotFoundException('Article does not exist');
+		}
+		const success = await this.usersService.addArticleToFavorites(
+			userId,
+			article,
+		);
+		if (success) {
+			article.favoritesCount++;
+			return this.articlesRepository.save(article);
+		}
+		return article;
+	}
+
+	async removeArticleFromFavorites(
+		slug: string,
+		userId: string,
+	): Promise<Article> {
+		const article = await this.findOneBySlug(slug);
+		if (!article) {
+			throw new NotFoundException('Article does not exist');
+		}
+		const success = await this.usersService.removeArticleFromFavorites(
+			userId,
+			article,
+		);
+		if (success && article.favoritesCount > 0) {
+			article.favoritesCount--;
+			return this.articlesRepository.save(article);
+		}
+		return article;
+	}
+
 	private getSlug(title: string): string {
 		function getRandomPart(): string {
 			return '-' + ((Math.random() * Math.pow(36, 6)) | 0).toString(36);
@@ -117,11 +171,47 @@ export class ArticlesService {
 		return slugify(title, { lower: true }) + getRandomPart();
 	}
 
-	buildArticleResponse(article: Article): IArticleResponse {
-		return { article };
+	async buildArticleResponse(
+		article: Article,
+		currentUserId: string,
+	): Promise<IArticleResponse> {
+		let favorited = false;
+		if (currentUserId) {
+			const user = await this.usersService.findOneByIdWithFavorites(
+				currentUserId,
+			);
+			favorited =
+				user &&
+				user.favorites.map((item) => item.id).includes(article.id);
+			// if (
+			// 	user &&
+			// 	user.favorites.map((item) => item.id).includes(article.id)
+			// ) {
+			// 	favorited = true;
+			// }
+		}
+		return { article: { ...article, favorited: favorited } };
 	}
 
-	buildArticlesResponse(articles: Article[]): IArticlesResponse {
-		return { articles, articlesCount: articles.length };
+	async buildArticlesResponse(
+		articles: Article[],
+		articlesCount: number,
+		currentUserId: string,
+	): Promise<IArticlesResponse> {
+		let favoritedIds = [];
+		if (currentUserId) {
+			const user = await this.usersService.findOneByIdWithFavorites(
+				currentUserId,
+			);
+			if (user) {
+				favoritedIds = user.favorites.map((item) => item.id);
+			}
+		}
+
+		const articlesWithFav: ArticleType[] = articles.map((article) => {
+			return { ...article, favorited: favoritedIds.includes(article.id) };
+		});
+
+		return { articles: articlesWithFav, articlesCount };
 	}
 }

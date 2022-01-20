@@ -1,5 +1,6 @@
-import { Article } from '@/articles/entities/article.entity';
+import { ArticleType } from './article.type';
 
 export interface IArticleResponse {
-	article: Article;
+	// article: Article & { favorited: boolean };
+	article: ArticleType;
 }

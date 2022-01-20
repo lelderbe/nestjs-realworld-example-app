@@ -11,6 +11,7 @@ import { CreateUserInput } from './dto/create-user.input';
 import { User } from './entities/user.entity';
 import { IUserResponse } from './types/user-response.interface';
 import { UpdateUserInput } from './dto/update-user.input';
+import { Article } from '@/articles/entities/article.entity';
 
 @Injectable()
 export class UsersService {
@@ -55,6 +56,30 @@ export class UsersService {
 		);
 	}
 
+	async findOneByIdWithFavorites(userId: string): Promise<User> {
+		return this.usersRepository.findOne(
+			{ id: userId },
+			{
+				relations: ['favorites'],
+			},
+		);
+	}
+
+	async findOneByNameWithFavorites(username: string): Promise<User> {
+		return this.usersRepository.findOne(
+			{ username },
+			{
+				relations: ['favorites'],
+			},
+		);
+	}
+
+	async findOneWithFavorites(userId: string): Promise<User> {
+		return this.usersRepository.findOne(userId, {
+			relations: ['favorites'],
+		});
+	}
+
 	// TODO: how about accept userId instead of user object
 	async update(user: User, input: UpdateUserInput): Promise<User> {
 		const userByEmail =
@@ -74,6 +99,55 @@ export class UsersService {
 		}
 		Object.assign(user, input);
 		return this.usersRepository.save(user);
+	}
+
+	async addArticleToFavorites(
+		userId: string,
+		article: Article,
+	): Promise<boolean> {
+		const user = await this.usersRepository.findOne(userId, {
+			relations: ['favorites'],
+		});
+		if (!user) {
+			throw new UnauthorizedException('Not authorized');
+		}
+		// TODO make better
+		const isNotFavorited =
+			user.favorites.findIndex(
+				(articleInFavorites) => articleInFavorites.id === article.id,
+			) === -1;
+		if (!isNotFavorited) {
+			return false;
+		}
+		user.favorites.push(article);
+		if (!(await this.usersRepository.save(user))) {
+			return false;
+		}
+		return true;
+	}
+
+	async removeArticleFromFavorites(
+		userId: string,
+		article: Article,
+	): Promise<boolean> {
+		const user = await this.usersRepository.findOne(userId, {
+			relations: ['favorites'],
+		});
+		if (!user) {
+			throw new UnauthorizedException('Not authorized');
+		}
+		// TODO make better
+		const index = user.favorites.findIndex(
+			(articleInFavorites) => articleInFavorites.id === article.id,
+		);
+		if (index === -1) {
+			return false;
+		}
+		user.favorites.splice(index, 1);
+		if (!(await this.usersRepository.save(user))) {
+			return false;
+		}
+		return true;
 	}
 
 	async getValidateUser(email: string, password: string): Promise<User> {

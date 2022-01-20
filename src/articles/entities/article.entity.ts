@@ -3,6 +3,7 @@ import {
 	CreateDateColumn,
 	DeleteDateColumn,
 	Entity,
+	ManyToMany,
 	ManyToOne,
 	PrimaryGeneratedColumn,
 	UpdateDateColumn,
@@ -26,7 +27,7 @@ export class Article {
 	@Column()
 	body: string;
 
-	@Column({ type: 'varchar', array: true, nullable: true })
+	@Column({ type: 'varchar', array: true, default: [] })
 	tagList: string[];
 
 	// @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
@@ -45,9 +46,6 @@ export class Article {
 	@DeleteDateColumn({ type: 'timestamp' })
 	deletedAt: Date;
 
-	// @Column(() => Boolean)
-	// favorited: boolean; // false
-
 	@Column({ default: 0 })
 	favoritesCount: number;
 
@@ -55,4 +53,9 @@ export class Article {
 
 	@ManyToOne(() => User, (author) => author.articles, { eager: true })
 	author: User;
+
+	// 	cascade: true,
+	// 	eager: true,
+	// @ManyToMany(() => User, (tag) => tag.articles, {})
+	// users: User[];
 }

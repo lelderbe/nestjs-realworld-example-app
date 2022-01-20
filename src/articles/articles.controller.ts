@@ -42,13 +42,16 @@ export class ArticlesController {
 		@CurrentUser() user: User,
 	): Promise<IArticleResponse> {
 		const article = await this.articlesService.create(input, user);
-		return this.articlesService.buildArticleResponse(article);
+		return this.articlesService.buildArticleResponse(article, user.id);
 	}
 
 	@Get(':slug')
-	async getArticle(@Param('slug') slug: string): Promise<IArticleResponse> {
+	async getArticle(
+		@Param('slug') slug: string,
+		@CurrentUser('id') userId: string,
+	): Promise<IArticleResponse> {
 		const article = await this.articlesService.findOneBySlug(slug);
-		return this.articlesService.buildArticleResponse(article);
+		return this.articlesService.buildArticleResponse(article, userId);
 	}
 
 	@UseGuards(AuthGuard)
@@ -68,6 +71,32 @@ export class ArticlesController {
 		@CurrentUser('id') userId: string,
 	): Promise<IArticleResponse> {
 		const article = await this.articlesService.update(slug, userId, input);
-		return this.articlesService.buildArticleResponse(article);
+		return this.articlesService.buildArticleResponse(article, userId);
+	}
+
+	@UseGuards(AuthGuard)
+	@Post(':slug/favorite')
+	async addArticleToFavorites(
+		@Param('slug') slug: string,
+		@CurrentUser('id') userId: string,
+	): Promise<IArticleResponse> {
+		const article = await this.articlesService.addArticleToFavorites(
+			slug,
+			userId,
+		);
+		return this.articlesService.buildArticleResponse(article, userId);
+	}
+
+	@UseGuards(AuthGuard)
+	@Delete(':slug/favorite')
+	async removeArticleFromFavorites(
+		@Param('slug') slug: string,
+		@CurrentUser('id') userId: string,
+	): Promise<IArticleResponse> {
+		const article = await this.articlesService.removeArticleFromFavorites(
+			slug,
+			userId,
+		);
+		return this.articlesService.buildArticleResponse(article, userId);
 	}
 }
