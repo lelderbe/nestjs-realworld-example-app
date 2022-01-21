@@ -21,6 +21,9 @@ migration:
 migration-down:
 		docker-compose ${COMPOSE_OPTS} exec node yarn migration:down
 
+db-seed:
+		docker-compose ${COMPOSE_OPTS} exec node yarn db:seed
+
 db-drop:
 		docker-compose ${COMPOSE_OPTS} exec node yarn db:drop
 
