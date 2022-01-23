@@ -3,6 +3,7 @@ import {
 	Injectable,
 	NotFoundException,
 	UnauthorizedException,
+	UnprocessableEntityException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -79,7 +80,9 @@ export class ProfilesService {
 			throw new NotFoundException('Profile not found');
 		}
 		if (user.id === currentUserId) {
-			throw new BadRequestException('Unable to follow yourself');
+			throw new UnprocessableEntityException({
+				errors: { follow: ['unable to (un)follow yourself'] },
+			});
 		}
 		const follower = await this.usersRepo.findOne(
 			{ id: currentUserId },

@@ -30,9 +30,14 @@ export class UsersService {
 			username: input.username,
 		});
 		if (userByEmail || userByUsername) {
-			throw new UnprocessableEntityException(
-				'Email or username are already taken',
-			);
+			const errors = {};
+			if (userByEmail) {
+				errors['email'] = ['email is already taken'];
+			}
+			if (userByUsername) {
+				errors['username'] = ['username is already taken'];
+			}
+			throw new UnprocessableEntityException({ errors });
 		}
 		const user = new User();
 		Object.assign(user, input);
@@ -97,9 +102,14 @@ export class UsersService {
 				})
 				: null;
 		if (userByEmail || userByUsername) {
-			throw new UnprocessableEntityException(
-				'Email or username are already taken',
-			);
+			const errors = {};
+			if (userByEmail) {
+				errors['email'] = ['email is already taken'];
+			}
+			if (userByUsername) {
+				errors['username'] = ['username is already taken'];
+			}
+			throw new UnprocessableEntityException({ errors });
 		}
 		Object.assign(user, input);
 		return this.usersRepository.save(user);
