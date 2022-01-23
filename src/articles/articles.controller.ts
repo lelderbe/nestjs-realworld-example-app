@@ -28,11 +28,16 @@ export class ArticlesController {
 		@Query() filter: FilterArticleInput,
 		@CurrentUser('id') userId: string,
 	): Promise<IArticlesResponse> {
-		console.log('userId', userId);
-		console.log('filter', filter);
-		const articles = await this.articlesService.findAll(filter, userId);
-		return articles;
-		// return this.articlesService.buildArticlesResponse(articles);
+		return this.articlesService.findAll(filter, userId);
+	}
+
+	@UseGuards(AuthGuard)
+	@Get('feed')
+	async getFeed(
+		@Query() filter: FilterArticleInput,
+		@CurrentUser('id') userId: string,
+	) {
+		return this.articlesService.getFeed(filter, userId);
 	}
 
 	@UseGuards(AuthGuard)

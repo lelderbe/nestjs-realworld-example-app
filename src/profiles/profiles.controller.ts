@@ -24,7 +24,7 @@ export class ProfilesController {
 			profileUsername,
 			currentUserId,
 		);
-		return await this.profilesService.buildProfileResponse(profile);
+		return this.profilesService.buildProfileResponse(profile);
 	}
 
 	@UseGuards(AuthGuard)
@@ -37,7 +37,7 @@ export class ProfilesController {
 			profileUsername,
 			currentUserId,
 		);
-		return await this.profilesService.buildProfileResponse(profile);
+		return this.profilesService.buildProfileResponse(profile);
 	}
 
 	@UseGuards(AuthGuard)
@@ -50,6 +50,6 @@ export class ProfilesController {
 			profileUsername,
 			currentUserId,
 		);
-		return await this.profilesService.buildProfileResponse(profile);
+		return this.profilesService.buildProfileResponse(profile);
 	}
 }

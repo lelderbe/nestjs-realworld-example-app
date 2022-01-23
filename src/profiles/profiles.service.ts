@@ -9,7 +9,6 @@ import { Repository } from 'typeorm';
 import { User } from '@/users/entities/user.entity';
 import { IProfileResponse } from './types/profile-response.interface';
 import { ProfileType } from './types/profile.type';
-import { UserType } from '@/users/types/user.type';
 
 @Injectable()
 export class ProfilesService {
@@ -63,7 +62,6 @@ export class ProfilesService {
 		);
 		const index = follower.follow.findIndex((item) => item.id === user.id);
 		if (index !== -1) {
-			console.log('index', index);
 			follower.follow.splice(index, 1);
 			await this.usersRepo.save(follower);
 		}
@@ -93,14 +91,9 @@ export class ProfilesService {
 		return { user: user, follower: follower };
 	}
 
-	async buildProfileResponse(
-		profile: ProfileType,
-	): Promise<IProfileResponse> {
-		// const { password, email, favorites, ...rest } = profile;
-		// const { email, favorites, ...rest } = profile;
+	buildProfileResponse(profile: ProfileType): IProfileResponse {
 		delete profile.email;
 		delete profile.favorites;
-		// const { ...rest } = profile;
 		return {
 			profile: { ...profile },
 		};

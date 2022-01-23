@@ -2,6 +2,7 @@ import {
 	ForbiddenException,
 	Injectable,
 	NotFoundException,
+	UnauthorizedException,
 } from '@nestjs/common';
 import slugify from 'slugify';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -23,6 +24,7 @@ export class ArticlesService {
 	constructor(
 		@InjectRepository(Article)
 		private readonly articlesRepository: Repository<Article>,
+		@InjectRepository(User) private readonly usersRepo: Repository<User>,
 		private readonly tagsService: TagsService,
 		private readonly usersService: UsersService,
 	) {}
@@ -41,16 +43,24 @@ export class ArticlesService {
 		return this.articlesRepository.save(article);
 	}
 
+	async findOneBySlug(slug: string): Promise<Article> {
+		return this.articlesRepository.findOne({ slug });
+	}
+
+	async findOneByTitle(title: string): Promise<Article> {
+		return this.articlesRepository.findOne({ title });
+	}
+
 	async findAll(
 		filter: FilterArticleInput,
 		userId: string,
 	): Promise<IArticlesResponse> {
 		filter.offset = filter.offset ? filter.offset : OFFSET;
 		filter.limit = filter.limit ? filter.limit : LIMIT;
-		console.log('filter', filter);
 		// let qBuilder = getRepository(Article).createQueryBuilder('articles');
-		let qBuilder = this.articlesRepository.createQueryBuilder('articles');
-		qBuilder = qBuilder.leftJoinAndSelect('articles.author', 'author');
+		let qBuilder = this.articlesRepository
+			.createQueryBuilder('articles')
+			.leftJoinAndSelect('articles.author', 'author');
 		if (filter.author) {
 			qBuilder = qBuilder.andWhere('author.username = :authorUsername', {
 				authorUsername: filter.author,
@@ -68,29 +78,47 @@ export class ArticlesService {
 			if (user) {
 				const ids = user.favorites.map((article) => article.id);
 				ids.push(null);
-				console.log('ids', ids);
 				qBuilder = qBuilder.andWhere('articles.id IN (:...ids)', {
 					ids,
 				});
 			}
 		}
-
 		qBuilder = qBuilder
 			.skip(filter.offset)
 			.take(filter.limit)
-			// .offset(filter.offset)
-			// .limit(filter.limit)
 			.orderBy('articles.updatedAt', 'DESC');
 		const [articles, articlesCount] = await qBuilder.getManyAndCount();
 		return this.buildArticlesResponse(articles, articlesCount, userId);
 	}
 
-	async findOneBySlug(slug: string): Promise<Article> {
-		return this.articlesRepository.findOne({ slug });
-	}
+	async getFeed(
+		filter: FilterArticleInput,
+		userId: string,
+	): Promise<IArticlesResponse> {
+		filter.offset = filter.offset ? filter.offset : OFFSET;
+		filter.limit = filter.limit ? filter.limit : LIMIT;
+		console.log('filter', filter);
+		const user = await this.usersRepo.findOne(
+			{ id: userId },
+			{ relations: ['follow'] },
+		);
+		if (!user) {
+			throw new UnauthorizedException('Unauthorized');
+		}
+		const followIds = user.follow.map((item) => item.id);
+		if (!followIds) {
+			return { articles: [], articlesCount: 0 };
+		}
 
-	async findOneByTitle(title: string): Promise<Article> {
-		return this.articlesRepository.findOne({ title });
+		const qBuilder = this.articlesRepository
+			.createQueryBuilder('articles')
+			.leftJoinAndSelect('articles.author', 'author')
+			.andWhere('author.id IN (:...followIds)', { followIds })
+			.skip(filter.offset)
+			.take(filter.limit)
+			.orderBy('articles.updatedAt', 'DESC');
+		const [articles, articlesCount] = await qBuilder.getManyAndCount();
+		return this.buildArticlesResponse(articles, articlesCount, userId);
 	}
 
 	async update(
