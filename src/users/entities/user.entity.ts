@@ -49,4 +49,8 @@ export class User {
 	@ManyToMany(() => Article)
 	@JoinTable()
 	favorites: Article[];
+
+	@ManyToMany(() => User)
+	@JoinTable()
+	follow: User[];
 }

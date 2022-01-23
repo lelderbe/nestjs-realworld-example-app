@@ -47,6 +47,10 @@ export class UsersService {
 		return this.usersRepository.findOne({ email });
 	}
 
+	async findOneByName(username: string): Promise<User> {
+		return this.usersRepository.findOne({ username });
+	}
+
 	async findOneByEmailWithPassword(email: string): Promise<User> {
 		return this.usersRepository.findOne(
 			{
@@ -162,7 +166,7 @@ export class UsersService {
 		if (!user) {
 			throw new UnauthorizedException('Not authorized');
 		}
-		const { id, password, ...rest } = user;
+		const { password, ...rest } = user;
 		// TODO: make some object return?
 		return {
 			user: { ...rest, token: this.generateJwt(user) },
