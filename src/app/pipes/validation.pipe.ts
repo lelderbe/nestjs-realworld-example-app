@@ -11,11 +11,15 @@ import { plainToClass } from 'class-transformer';
 export class ValidationPipe implements PipeTransform<any> {
 	constructor(private readonly validatorOptions?: ValidatorOptions) {}
 
-	async transform(value: any, { metatype }: ArgumentMetadata) {
-		if (!metatype || !this.toValidate(metatype)) {
+	async transform(value: any, metadata: ArgumentMetadata) {
+		if (
+			!metadata?.metatype ||
+			metadata.type === 'custom' ||
+			!this.toValidate(metadata?.metatype)
+		) {
 			return value;
 		}
-		const object = plainToClass(metatype, value);
+		const object = plainToClass(metadata.metatype, value);
 		const errors = await validate(object, this.validatorOptions);
 		if (errors.length > 0) {
 			throw new UnprocessableEntityException({

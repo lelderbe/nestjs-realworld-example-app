@@ -1,19 +1,8 @@
-import { IsEmail, IsOptional, IsString } from 'class-validator';
+import { PartialType } from '@nestjs/mapped-types';
+import { IsOptional, IsString } from 'class-validator';
+import { CreateUserInput } from './create-user.input';
 
-export class UpdateUserInput {
-	@IsOptional()
-	@IsString()
-	readonly username?: string;
-
-	@IsOptional()
-	@IsEmail()
-	@IsString()
-	readonly email?: string;
-
-	@IsOptional()
-	@IsString()
-	readonly password?: string;
-
+export class UpdateUserInput extends PartialType(CreateUserInput) {
 	@IsOptional()
 	@IsString()
 	readonly bio?: string;
