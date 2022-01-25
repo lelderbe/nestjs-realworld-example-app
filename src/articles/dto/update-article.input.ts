@@ -1,18 +1,4 @@
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { PartialType } from '@nestjs/mapped-types';
+import { CreateArticleInput } from './create-article.input';
 
-export class UpdateArticleInput {
-	@IsOptional()
-	@IsNotEmpty()
-	@IsString()
-	readonly title?: string;
-
-	@IsOptional()
-	readonly description?: string;
-
-	@IsOptional()
-	readonly body?: string;
-
-	@IsOptional()
-	@IsString({ each: true })
-	readonly tagList?: string[];
-}
+export class UpdateArticleInput extends PartialType(CreateArticleInput) {}

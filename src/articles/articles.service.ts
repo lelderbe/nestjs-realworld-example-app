@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import slugify from 'slugify';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, UpdateResult } from 'typeorm';
+import { Repository } from 'typeorm';
 import { CreateArticleInput } from './dto/create-article.input';
 import { User } from '@/users/entities/user.entity';
 import { Article } from './entities/article.entity';
@@ -30,8 +30,9 @@ export class ArticlesService {
 	) {}
 
 	async create(input: CreateArticleInput, user: User): Promise<Article> {
-		const article = new Article();
-		Object.assign(article, input);
+		const article = this.articlesRepository.create(input);
+		// const article = new Article();
+		// Object.assign(article, input);
 		// const article = Object.assign(new Article(), input);
 		if (article.tagList) {
 			article.tagList.forEach((title) => {
@@ -140,7 +141,7 @@ export class ArticlesService {
 		return this.articlesRepository.save(article);
 	}
 
-	async delete(slug: string, userId: string): Promise<UpdateResult> {
+	async remove(slug: string, userId: string): Promise<Article> {
 		const article = await this.findOneBySlug(slug);
 		if (!article) {
 			throw new NotFoundException('Article does not exist');
@@ -148,8 +149,7 @@ export class ArticlesService {
 		if (article.author.id !== userId) {
 			throw new ForbiddenException('You are not owner of this article');
 		}
-		return this.articlesRepository.softDelete({ slug });
-		// return this.articlesRepository.softDelete(article);
+		return this.articlesRepository.softRemove(article);
 	}
 
 	async addArticleToFavorites(
