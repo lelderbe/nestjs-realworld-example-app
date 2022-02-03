@@ -4,10 +4,12 @@ import {
 	DeleteDateColumn,
 	Entity,
 	ManyToOne,
+	OneToMany,
 	PrimaryGeneratedColumn,
 	UpdateDateColumn,
 } from 'typeorm';
 import { User } from '@/users/entities/user.entity';
+import { Comment } from './comment.entity';
 
 @Entity('articles')
 export class Article {
@@ -52,6 +54,9 @@ export class Article {
 
 	@ManyToOne(() => User, (author) => author.articles, { eager: true })
 	author: User;
+
+	@OneToMany(() => Comment, (comment) => comment.article)
+	comments: Comment[];
 
 	// 	cascade: true,
 	// 	eager: true,

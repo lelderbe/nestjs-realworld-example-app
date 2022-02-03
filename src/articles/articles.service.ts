@@ -18,6 +18,8 @@ import { FilterArticleInput } from './dto/filter-article.input';
 import { LIMIT, OFFSET } from '@/app/constants';
 import { UsersService } from '@/users/users.service';
 import { ArticleType } from './types/article.type';
+import { CreateCommentInput } from './dto/create-comment.input';
+import { Comment } from './entities/comment.entity';
 
 @Injectable()
 export class ArticlesService {
@@ -25,6 +27,8 @@ export class ArticlesService {
 		@InjectRepository(Article)
 		private readonly articlesRepository: Repository<Article>,
 		@InjectRepository(User) private readonly usersRepo: Repository<User>,
+		@InjectRepository(Comment)
+		private readonly commentsRepository: Repository<Comment>,
 		private readonly tagsService: TagsService,
 		private readonly usersService: UsersService,
 	) {}
@@ -44,13 +48,21 @@ export class ArticlesService {
 		return this.articlesRepository.save(article);
 	}
 
-	async findOneBySlug(slug: string): Promise<Article> {
-		return this.articlesRepository.findOne({ slug });
+	async findArticleBySlug(slug: string): Promise<Article> {
+		const article = await this.articlesRepository.findOne({ slug });
+		if (!article) {
+			throw new NotFoundException('Article does not exist');
+		}
+		return article;
 	}
 
-	async findOneByTitle(title: string): Promise<Article> {
-		return this.articlesRepository.findOne({ title });
-	}
+	// async findArticleByTitle(title: string): Promise<Article> {
+	// 	const article = await this.articlesRepository.findOne({ title });
+	// 	if (!article) {
+	// 		throw new NotFoundException('Article does not exist');
+	// 	}
+	// 	return article;
+	// }
 
 	async findAll(
 		filter: FilterArticleInput,
@@ -127,10 +139,7 @@ export class ArticlesService {
 		userId: string,
 		input: UpdateArticleInput,
 	): Promise<Article> {
-		const article = await this.findOneBySlug(slug);
-		if (!article) {
-			throw new NotFoundException('Article does not exist');
-		}
+		const article = await this.findArticleBySlug(slug);
 		if (article.author.id !== userId) {
 			throw new ForbiddenException('You are not owner of this article');
 		}
@@ -142,10 +151,7 @@ export class ArticlesService {
 	}
 
 	async remove(slug: string, userId: string): Promise<Article> {
-		const article = await this.findOneBySlug(slug);
-		if (!article) {
-			throw new NotFoundException('Article does not exist');
-		}
+		const article = await this.findArticleBySlug(slug);
 		if (article.author.id !== userId) {
 			throw new ForbiddenException('You are not owner of this article');
 		}
@@ -156,10 +162,7 @@ export class ArticlesService {
 		slug: string,
 		userId: string,
 	): Promise<Article> {
-		const article = await this.findOneBySlug(slug);
-		if (!article) {
-			throw new NotFoundException('Article does not exist');
-		}
+		const article = await this.findArticleBySlug(slug);
 		const success = await this.usersService.addArticleToFavorites(
 			userId,
 			article,
@@ -175,10 +178,7 @@ export class ArticlesService {
 		slug: string,
 		userId: string,
 	): Promise<Article> {
-		const article = await this.findOneBySlug(slug);
-		if (!article) {
-			throw new NotFoundException('Article does not exist');
-		}
+		const article = await this.findArticleBySlug(slug);
 		const success = await this.usersService.removeArticleFromFavorites(
 			userId,
 			article,
@@ -241,5 +241,73 @@ export class ArticlesService {
 		});
 
 		return { articles: articlesWithFav, articlesCount };
+	}
+
+	async addCommentToArticle(
+		slug: string,
+		input: CreateCommentInput,
+		userId: string,
+	): Promise<Comment> {
+		const article = await this.findArticleBySlug(slug);
+		const user = await this.usersService.findOne(userId);
+		if (!user) {
+			throw new UnauthorizedException('Not authorized');
+		}
+		const comment = this.commentsRepository.create({
+			...input,
+			article,
+			author: user,
+		});
+		console.log('comment:', comment);
+		return this.commentsRepository.save(comment);
+	}
+
+	async getArticleComments(slug: string, userId: string) {
+		const qBuilder = this.commentsRepository
+			.createQueryBuilder('comments')
+			.leftJoinAndSelect('comments.article', 'article')
+			.leftJoinAndSelect('comments.author', 'author')
+			.andWhere('article.slug = :slug', { slug })
+			.orderBy('comments.updatedAt', 'ASC');
+
+		const [comments, commentsCount] = await qBuilder.getManyAndCount();
+		return this.buildCommentsResponse(comments, commentsCount, userId);
+	}
+
+	async removeCommentFromArticle(
+		slug: string,
+		commentId: string,
+		userId: string,
+	) {
+		const qBuilder = this.commentsRepository
+			.createQueryBuilder('comments')
+			.leftJoinAndSelect('comments.article', 'article')
+			.leftJoinAndSelect('comments.author', 'author')
+			.andWhere('comments.id = :commentId', { commentId })
+			.andWhere('article.slug = :slug', { slug });
+		const comment = await qBuilder.getOne();
+		console.log('comment:', comment);
+		if (!comment) {
+			throw new NotFoundException('Comment not found');
+		}
+		if (comment.author.id !== userId) {
+			throw new ForbiddenException('You are not owner of this comment');
+		}
+		return this.commentsRepository.softRemove(comment);
+	}
+
+	async buildCommentResponse(
+		comment: Comment,
+		currentUserId: string,
+	): Promise<any> {
+		return { comment };
+	}
+
+	async buildCommentsResponse(
+		comments: Comment[],
+		commentsCount: number,
+		currentUserId: string,
+	): Promise<any> {
+		return { comments };
 	}
 }

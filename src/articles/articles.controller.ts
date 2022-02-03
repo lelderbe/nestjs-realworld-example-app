@@ -18,6 +18,7 @@ import { UpdateArticleInput } from './dto/update-article.input';
 import { AuthGuard } from '@/users/guards/auth.guard';
 import { IArticlesResponse } from './types/articles-response.interface';
 import { FilterArticleInput } from './dto/filter-article.input';
+import { CreateCommentInput } from './dto/create-comment.input';
 
 @Controller('articles')
 export class ArticlesController {
@@ -55,7 +56,7 @@ export class ArticlesController {
 		@Param('slug') slug: string,
 		@CurrentUser('id') userId: string,
 	): Promise<IArticleResponse> {
-		const article = await this.articlesService.findOneBySlug(slug);
+		const article = await this.articlesService.findArticleBySlug(slug);
 		return this.articlesService.buildArticleResponse(article, userId);
 	}
 
@@ -103,5 +104,45 @@ export class ArticlesController {
 			userId,
 		);
 		return this.articlesService.buildArticleResponse(article, userId);
+	}
+
+	@UseGuards(AuthGuard)
+	@Post(':slug/comments')
+	async addCommentToArticle(
+		@Param('slug') slug: string,
+		@Body('comment') input: CreateCommentInput,
+		@CurrentUser('id') userId: string,
+	): Promise<any> {
+		const comment = await this.articlesService.addCommentToArticle(
+			slug,
+			input,
+			userId,
+		);
+		return this.articlesService.buildCommentResponse(comment, userId);
+	}
+
+	@Get(':slug/comments')
+	async getArticleComments(
+		@Param('slug') slug: string,
+		@CurrentUser('id') userId: string,
+	): Promise<any> {
+		return this.articlesService.getArticleComments(slug, userId);
+		// const article = await this.articlesService.findOneBySlug(slug);
+		// return this.articlesService.buildArticleResponse(article, userId);
+	}
+
+	@UseGuards(AuthGuard)
+	@Delete(':slug/comments/:id')
+	async removeCommentFromArticle(
+		@Param('slug') slug: string,
+		@Param('id') commentId: string,
+		@CurrentUser('id') userId: string,
+	): Promise<any> {
+		return this.articlesService.removeCommentFromArticle(
+			slug,
+			commentId,
+			userId,
+		);
+		// return this.articlesService.buildArticleResponse(article, userId);
 	}
 }
