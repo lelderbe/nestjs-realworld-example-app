@@ -20,6 +20,7 @@ import { UsersService } from '@/users/users.service';
 import { ArticleType } from './types/article.type';
 import { CreateCommentInput } from './dto/create-comment.input';
 import { Comment } from './entities/comment.entity';
+import { ICommentResponse } from './types/comment-response.interface';
 
 @Injectable()
 export class ArticlesService {
@@ -296,10 +297,12 @@ export class ArticlesService {
 		return this.commentsRepository.softRemove(comment);
 	}
 
-	async buildCommentResponse(
+	buildCommentResponse(
 		comment: Comment,
 		currentUserId: string,
-	): Promise<any> {
+	): ICommentResponse {
+		delete comment.article;
+		delete comment.author.email;
 		return { comment };
 	}
 
@@ -308,6 +311,10 @@ export class ArticlesService {
 		commentsCount: number,
 		currentUserId: string,
 	): Promise<any> {
+		comments = comments.map((item) => {
+			const elem = this.buildCommentResponse(item, currentUserId);
+			return elem.comment;
+		});
 		return { comments };
 	}
 }

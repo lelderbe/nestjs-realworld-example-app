@@ -20,6 +20,7 @@ export class AuthMiddleware implements NestMiddleware {
 		const token = req.headers.authorization.split(' ')[1];
 		try {
 			const payload = verify(token, process.env.JWT_SECRET, {
+				// TODO: make env-dependent
 				ignoreExpiration: true, // dev temp
 			});
 			// TODO !payload?.sub ???

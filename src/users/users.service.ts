@@ -39,6 +39,7 @@ export class UsersService {
 			}
 			throw new UnprocessableEntityException({ errors });
 		}
+		// TODO: use .create method
 		const user = new User();
 		Object.assign(user, input);
 		return this.usersRepository.save(user);
@@ -84,9 +85,12 @@ export class UsersService {
 	}
 
 	async findOneWithFavorites(userId: string): Promise<User> {
-		return this.usersRepository.findOne(userId, {
-			relations: ['favorites'],
-		});
+		return this.usersRepository.findOne(
+			{ id: userId },
+			{
+				relations: ['favorites'],
+			},
+		);
 	}
 
 	// TODO: how about accept userId instead of user object

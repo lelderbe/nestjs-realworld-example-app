@@ -22,6 +22,7 @@ export class TagsService {
 		if (tag) {
 			return tag;
 		}
+		// TODO: use .create method?
 		tag = new Tag();
 		tag.title = title;
 		return this.tagsRepository.save(tag);

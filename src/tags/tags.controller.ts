@@ -5,6 +5,7 @@ import { TagsService } from './tags.service';
 export class TagsController {
 	constructor(private readonly tagsService: TagsService) {}
 
+	// TODO: make response type
 	@Get()
 	async findAll(): Promise<{ tags: string[] }> {
 		const tags = await this.tagsService.findAll();
