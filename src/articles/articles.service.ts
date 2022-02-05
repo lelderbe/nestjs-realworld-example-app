@@ -21,6 +21,7 @@ import { ArticleType } from './types/article.type';
 import { CreateCommentInput } from './dto/create-comment.input';
 import { Comment } from './entities/comment.entity';
 import { ICommentResponse } from './types/comment-response.interface';
+import { ICommentsResponse } from './types/comments-response.interface';
 
 @Injectable()
 export class ArticlesService {
@@ -200,26 +201,37 @@ export class ArticlesService {
 		return slugify(title, { lower: true }) + getRandomPart();
 	}
 
+	private async getArticleResponse(
+		article: Article,
+		user: User,
+	): Promise<IArticleResponse> {
+		let favorited = false;
+		let following = false;
+		console.log('currentUser', user);
+		if (user) {
+			if (user.favorites.find((item) => item.id === article.id)) {
+				favorited = true;
+			}
+			if (user.follow.find((item) => item.id === article.author.id)) {
+				following = true;
+			}
+		}
+		article.author['following'] = following;
+		// delete article.author.id;
+		delete article.author.email;
+		delete article.id;
+		delete article.deletedAt;
+		return { article: { ...article, favorited: favorited } };
+	}
+
 	async buildArticleResponse(
 		article: Article,
 		currentUserId: string,
 	): Promise<IArticleResponse> {
-		let favorited = false;
-		if (currentUserId) {
-			const user = await this.usersService.findOneByIdWithFavorites(
-				currentUserId,
-			);
-			favorited =
-				user &&
-				user.favorites.map((item) => item.id).includes(article.id);
-			// if (
-			// 	user &&
-			// 	user.favorites.map((item) => item.id).includes(article.id)
-			// ) {
-			// 	favorited = true;
-			// }
-		}
-		return { article: { ...article, favorited: favorited } };
+		const user = await this.usersService.findOneByIdWithFavoritesAndFollow(
+			currentUserId,
+		);
+		return this.getArticleResponse(article, user);
 	}
 
 	async buildArticlesResponse(
@@ -227,20 +239,15 @@ export class ArticlesService {
 		articlesCount: number,
 		currentUserId: string,
 	): Promise<IArticlesResponse> {
-		let favoritedIds = [];
-		if (currentUserId) {
-			const user = await this.usersService.findOneByIdWithFavorites(
-				currentUserId,
-			);
-			if (user) {
-				favoritedIds = user.favorites.map((item) => item.id);
-			}
-		}
-
-		const articlesWithFav: ArticleType[] = articles.map((article) => {
-			return { ...article, favorited: favoritedIds.includes(article.id) };
-		});
-
+		const user = await this.usersService.findOneByIdWithFavoritesAndFollow(
+			currentUserId,
+		);
+		const articlesWithFav: ArticleType[] = await Promise.all(
+			articles.map(async (article) => {
+				const result = await this.getArticleResponse(article, user);
+				return { ...result.article };
+			}),
+		);
 		return { articles: articlesWithFav, articlesCount };
 	}
 
@@ -263,14 +270,16 @@ export class ArticlesService {
 		return this.commentsRepository.save(comment);
 	}
 
-	async getArticleComments(slug: string, userId: string) {
+	async getArticleComments(
+		slug: string,
+		userId: string,
+	): Promise<ICommentsResponse> {
 		const qBuilder = this.commentsRepository
 			.createQueryBuilder('comments')
 			.leftJoinAndSelect('comments.article', 'article')
 			.leftJoinAndSelect('comments.author', 'author')
 			.andWhere('article.slug = :slug', { slug })
 			.orderBy('comments.updatedAt', 'ASC');
-
 		const [comments, commentsCount] = await qBuilder.getManyAndCount();
 		return this.buildCommentsResponse(comments, commentsCount, userId);
 	}
@@ -279,7 +288,7 @@ export class ArticlesService {
 		slug: string,
 		commentId: string,
 		userId: string,
-	) {
+	): Promise<Comment> {
 		const qBuilder = this.commentsRepository
 			.createQueryBuilder('comments')
 			.leftJoinAndSelect('comments.article', 'article')
@@ -297,24 +306,49 @@ export class ArticlesService {
 		return this.commentsRepository.softRemove(comment);
 	}
 
-	buildCommentResponse(
+	private async getCommentResponse(
+		comment: Comment,
+		user: User,
+	): Promise<ICommentResponse> {
+		let following = false;
+		console.log('currentUser', user);
+		if (user) {
+			if (user.follow.find((item) => item.id === comment.author.id)) {
+				following = true;
+			}
+		}
+		comment.author['following'] = following;
+		delete comment.article;
+		delete comment.author.id;
+		delete comment.author.email;
+		delete comment.deletedAt;
+		return { comment: { ...comment } };
+	}
+
+	async buildCommentResponse(
 		comment: Comment,
 		currentUserId: string,
-	): ICommentResponse {
-		delete comment.article;
-		delete comment.author.email;
-		return { comment };
+	): Promise<ICommentResponse> {
+		const user = await this.usersService.findOneByIdWithFavoritesAndFollow(
+			currentUserId,
+		);
+		return this.getCommentResponse(comment, user);
 	}
 
 	async buildCommentsResponse(
 		comments: Comment[],
 		commentsCount: number,
 		currentUserId: string,
-	): Promise<any> {
-		comments = comments.map((item) => {
-			const elem = this.buildCommentResponse(item, currentUserId);
-			return elem.comment;
-		});
-		return { comments };
+	): Promise<ICommentsResponse> {
+		const user = await this.usersService.findOneByIdWithFavoritesAndFollow(
+			currentUserId,
+		);
+		const commentsRes = await Promise.all(
+			comments.map(async (item) => {
+				const result = await this.getCommentResponse(item, user);
+				return { ...result.comment };
+			}),
+		);
+		return { comments: commentsRes };
 	}
 }

@@ -59,9 +59,7 @@ export class UsersService {
 
 	async findOneByEmailWithPassword(email: string): Promise<User> {
 		return this.usersRepository.findOne(
-			{
-				email,
-			},
+			{ email },
 			{ select: ['id', 'username', 'email', 'password', 'bio', 'image'] },
 		);
 	}
@@ -69,27 +67,28 @@ export class UsersService {
 	async findOneByIdWithFavorites(userId: string): Promise<User> {
 		return this.usersRepository.findOne(
 			{ id: userId },
-			{
-				relations: ['favorites'],
-			},
+			{ relations: ['favorites'] },
 		);
 	}
 
 	async findOneByNameWithFavorites(username: string): Promise<User> {
 		return this.usersRepository.findOne(
 			{ username },
-			{
-				relations: ['favorites'],
-			},
+			{ relations: ['favorites'] },
 		);
 	}
 
 	async findOneWithFavorites(userId: string): Promise<User> {
 		return this.usersRepository.findOne(
 			{ id: userId },
-			{
-				relations: ['favorites'],
-			},
+			{ relations: ['favorites'] },
+		);
+	}
+
+	async findOneByIdWithFavoritesAndFollow(userId: string): Promise<User> {
+		return this.usersRepository.findOne(
+			{ id: userId },
+			{ relations: ['favorites', 'follow'] },
 		);
 	}
 

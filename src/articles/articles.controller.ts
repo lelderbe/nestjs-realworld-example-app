@@ -19,6 +19,8 @@ import { AuthGuard } from '@/users/guards/auth.guard';
 import { IArticlesResponse } from './types/articles-response.interface';
 import { FilterArticleInput } from './dto/filter-article.input';
 import { CreateCommentInput } from './dto/create-comment.input';
+import { ICommentsResponse } from './types/comments-response.interface';
+import { ICommentResponse } from './types/comment-response.interface';
 
 @Controller('articles')
 export class ArticlesController {
@@ -112,7 +114,7 @@ export class ArticlesController {
 		@Param('slug') slug: string,
 		@Body('comment') input: CreateCommentInput,
 		@CurrentUser('id') userId: string,
-	): Promise<any> {
+	): Promise<ICommentResponse> {
 		const comment = await this.articlesService.addCommentToArticle(
 			slug,
 			input,
@@ -125,10 +127,8 @@ export class ArticlesController {
 	async getArticleComments(
 		@Param('slug') slug: string,
 		@CurrentUser('id') userId: string,
-	): Promise<any> {
+	): Promise<ICommentsResponse> {
 		return this.articlesService.getArticleComments(slug, userId);
-		// const article = await this.articlesService.findOneBySlug(slug);
-		// return this.articlesService.buildArticleResponse(article, userId);
 	}
 
 	@UseGuards(AuthGuard)
@@ -137,12 +137,7 @@ export class ArticlesController {
 		@Param('slug') slug: string,
 		@Param('id') commentId: string,
 		@CurrentUser('id') userId: string,
-	): Promise<any> {
-		return this.articlesService.removeCommentFromArticle(
-			slug,
-			commentId,
-			userId,
-		);
-		// return this.articlesService.buildArticleResponse(article, userId);
+	): Promise<void> {
+		this.articlesService.removeCommentFromArticle(slug, commentId, userId);
 	}
 }
