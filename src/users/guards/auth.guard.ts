@@ -10,7 +10,6 @@ import { IExpressRequest } from '@/app/types/express-request.interface';
 export class AuthGuard implements CanActivate {
 	canActivate(context: ExecutionContext): boolean {
 		const request = context.switchToHttp().getRequest<IExpressRequest>();
-
 		if (request.user) {
 			return true;
 		}

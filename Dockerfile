@@ -8,7 +8,7 @@ CMD	\
 	yarn config set strict-ssl false && \
 	# export NODE_TLS_REJECT_UNAUTHORIZED='0' && \
 	yarn install && \
-	yarn build && \
-	# yarn migration:up && \
+	# yarn build && \
+	yarn migration:up && \
 	yarn start:dev && \
 	echo

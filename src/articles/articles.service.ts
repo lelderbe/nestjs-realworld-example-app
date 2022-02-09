@@ -28,7 +28,8 @@ export class ArticlesService {
 	constructor(
 		@InjectRepository(Article)
 		private readonly articlesRepository: Repository<Article>,
-		@InjectRepository(User) private readonly usersRepo: Repository<User>,
+		@InjectRepository(User)
+		private readonly usersRepository: Repository<User>,
 		@InjectRepository(Comment)
 		private readonly commentsRepository: Repository<Comment>,
 		private readonly tagsService: TagsService,
@@ -37,9 +38,7 @@ export class ArticlesService {
 
 	async create(input: CreateArticleInput, user: User): Promise<Article> {
 		const article = this.articlesRepository.create(input);
-		// const article = new Article();
-		// Object.assign(article, input);
-		// const article = Object.assign(new Article(), input);
+		// TODO use transaction
 		if (article.tagList) {
 			article.tagList.forEach((title) => {
 				this.tagsService.createIfNotExists(title);
@@ -58,17 +57,9 @@ export class ArticlesService {
 		return article;
 	}
 
-	// async findArticleByTitle(title: string): Promise<Article> {
-	// 	const article = await this.articlesRepository.findOne({ title });
-	// 	if (!article) {
-	// 		throw new NotFoundException('Article does not exist');
-	// 	}
-	// 	return article;
-	// }
-
 	async findAll(
 		filter: FilterArticleInput,
-		userId: string,
+		currentUserId: string,
 	): Promise<IArticlesResponse> {
 		filter.offset = filter.offset ? filter.offset : OFFSET;
 		filter.limit = filter.limit ? filter.limit : LIMIT;
@@ -87,11 +78,12 @@ export class ArticlesService {
 			});
 		}
 		if (filter.favorited) {
-			const user = await this.usersService.findOneByNameWithFavorites(
-				filter.favorited,
-			);
-			if (user) {
-				const ids = user.favorites.map((article) => article.id);
+			const favoritedBy =
+				await this.usersService.findOneByNameWithFavorites(
+					filter.favorited,
+				);
+			if (favoritedBy) {
+				const ids = favoritedBy.favorites.map((article) => article.id);
 				ids.push(null);
 				qBuilder = qBuilder.andWhere('articles.id IN (:...ids)', {
 					ids,
@@ -101,27 +93,30 @@ export class ArticlesService {
 		qBuilder = qBuilder
 			.skip(filter.offset)
 			.take(filter.limit)
-			.orderBy('articles.updatedAt', 'DESC');
+			.orderBy('articles.createdAt', 'DESC');
 		const [articles, articlesCount] = await qBuilder.getManyAndCount();
-		return this.buildArticlesResponse(articles, articlesCount, userId);
+		return this.buildArticlesResponse(
+			articles,
+			articlesCount,
+			currentUserId,
+		);
 	}
 
 	async getFeed(
 		filter: FilterArticleInput,
-		userId: string,
+		currentUserId: string,
 	): Promise<IArticlesResponse> {
 		filter.offset = filter.offset ? filter.offset : OFFSET;
 		filter.limit = filter.limit ? filter.limit : LIMIT;
-		console.log('filter', filter);
-		const user = await this.usersRepo.findOne(
-			{ id: userId },
+		const user = await this.usersRepository.findOne(
+			{ id: currentUserId },
 			{ relations: ['follow'] },
 		);
 		if (!user) {
 			throw new UnauthorizedException('Unauthorized');
 		}
 		const followIds = user.follow.map((item) => item.id);
-		if (!followIds) {
+		if (!followIds.length) {
 			return { articles: [], articlesCount: 0 };
 		}
 
@@ -131,18 +126,22 @@ export class ArticlesService {
 			.andWhere('author.id IN (:...followIds)', { followIds })
 			.skip(filter.offset)
 			.take(filter.limit)
-			.orderBy('articles.updatedAt', 'DESC');
+			.orderBy('articles.createdAt', 'DESC');
 		const [articles, articlesCount] = await qBuilder.getManyAndCount();
-		return this.buildArticlesResponse(articles, articlesCount, userId);
+		return this.buildArticlesResponse(
+			articles,
+			articlesCount,
+			currentUserId,
+		);
 	}
 
 	async update(
 		slug: string,
-		userId: string,
+		currentUserId: string,
 		input: UpdateArticleInput,
 	): Promise<Article> {
 		const article = await this.findArticleBySlug(slug);
-		if (article.author.id !== userId) {
+		if (article.author.id !== currentUserId) {
 			throw new ForbiddenException('You are not owner of this article');
 		}
 		Object.assign(article, input);
@@ -152,9 +151,9 @@ export class ArticlesService {
 		return this.articlesRepository.save(article);
 	}
 
-	async remove(slug: string, userId: string): Promise<Article> {
+	async remove(slug: string, currentUserId: string): Promise<Article> {
 		const article = await this.findArticleBySlug(slug);
-		if (article.author.id !== userId) {
+		if (article.author.id !== currentUserId) {
 			throw new ForbiddenException('You are not owner of this article');
 		}
 		return this.articlesRepository.softRemove(article);
@@ -162,11 +161,12 @@ export class ArticlesService {
 
 	async addArticleToFavorites(
 		slug: string,
-		userId: string,
+		currentUserId: string,
 	): Promise<Article> {
 		const article = await this.findArticleBySlug(slug);
+		// TODO use transaction
 		const success = await this.usersService.addArticleToFavorites(
-			userId,
+			currentUserId,
 			article,
 		);
 		if (success) {
@@ -178,11 +178,12 @@ export class ArticlesService {
 
 	async removeArticleFromFavorites(
 		slug: string,
-		userId: string,
+		currentUserId: string,
 	): Promise<Article> {
 		const article = await this.findArticleBySlug(slug);
+		// TODO use transaction
 		const success = await this.usersService.removeArticleFromFavorites(
-			userId,
+			currentUserId,
 			article,
 		);
 		if (success && article.favoritesCount > 0) {
@@ -197,7 +198,6 @@ export class ArticlesService {
 			return '-' + ((Math.random() * Math.pow(36, 6)) | 0).toString(36);
 		}
 
-		// return slugify(title, { lower: true });
 		return slugify(title, { lower: true }) + getRandomPart();
 	}
 
@@ -207,7 +207,6 @@ export class ArticlesService {
 	): Promise<IArticleResponse> {
 		let favorited = false;
 		let following = false;
-		console.log('currentUser', user);
 		if (user) {
 			if (user.favorites.find((item) => item.id === article.id)) {
 				favorited = true;
@@ -217,7 +216,7 @@ export class ArticlesService {
 			}
 		}
 		article.author['following'] = following;
-		// delete article.author.id;
+		delete article.author.id;
 		delete article.author.email;
 		delete article.id;
 		delete article.deletedAt;
@@ -254,10 +253,10 @@ export class ArticlesService {
 	async addCommentToArticle(
 		slug: string,
 		input: CreateCommentInput,
-		userId: string,
+		currentUserId: string,
 	): Promise<Comment> {
 		const article = await this.findArticleBySlug(slug);
-		const user = await this.usersService.findOne(userId);
+		const user = await this.usersService.findOne(currentUserId);
 		if (!user) {
 			throw new UnauthorizedException('Not authorized');
 		}
@@ -272,35 +271,38 @@ export class ArticlesService {
 
 	async getArticleComments(
 		slug: string,
-		userId: string,
+		currentUserId: string,
 	): Promise<ICommentsResponse> {
 		const qBuilder = this.commentsRepository
 			.createQueryBuilder('comments')
 			.leftJoinAndSelect('comments.article', 'article')
 			.leftJoinAndSelect('comments.author', 'author')
 			.andWhere('article.slug = :slug', { slug })
-			.orderBy('comments.updatedAt', 'ASC');
+			.orderBy('comments.createdAt', 'DESC');
 		const [comments, commentsCount] = await qBuilder.getManyAndCount();
-		return this.buildCommentsResponse(comments, commentsCount, userId);
+		return this.buildCommentsResponse(
+			comments,
+			commentsCount,
+			currentUserId,
+		);
 	}
 
 	async removeCommentFromArticle(
 		slug: string,
 		commentId: string,
-		userId: string,
+		currentUserId: string,
 	): Promise<Comment> {
 		const qBuilder = this.commentsRepository
 			.createQueryBuilder('comments')
 			.leftJoinAndSelect('comments.article', 'article')
 			.leftJoinAndSelect('comments.author', 'author')
-			.andWhere('comments.id = :commentId', { commentId })
-			.andWhere('article.slug = :slug', { slug });
+			.andWhere('article.slug = :slug', { slug })
+			.andWhere('comments.id = :commentId', { commentId });
 		const comment = await qBuilder.getOne();
-		console.log('comment:', comment);
 		if (!comment) {
 			throw new NotFoundException('Comment not found');
 		}
-		if (comment.author.id !== userId) {
+		if (comment.author.id !== currentUserId) {
 			throw new ForbiddenException('You are not owner of this comment');
 		}
 		return this.commentsRepository.softRemove(comment);
@@ -311,7 +313,6 @@ export class ArticlesService {
 		user: User,
 	): Promise<ICommentResponse> {
 		let following = false;
-		console.log('currentUser', user);
 		if (user) {
 			if (user.follow.find((item) => item.id === comment.author.id)) {
 				following = true;

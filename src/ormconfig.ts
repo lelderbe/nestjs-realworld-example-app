@@ -1,25 +1,42 @@
 import { ConnectionOptions } from 'typeorm';
-// import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
 
-const config: ConnectionOptions = {
-	type: process.env.TYPEORM_CONNECTION as 'postgres' | 'mysql',
-	host: process.env.TYPEORM_HOST,
-	port: +process.env.TYPEORM_PORT,
-	username: process.env.TYPEORM_USERNAME,
+export default {
+	type: 'postgres',
+	host: 'postgres',
+	port: 5432,
+	username: 'postgres',
 	password: process.env.POSTGRES_PASSWORD,
-	database: process.env.TYPEORM_DATABASE,
-	// entities: ['dist/**/*.entity{.ts,.js}'],
+	database: 'conduit',
+	// entities: ['dist/**/*.entity.js'],
 	entities: [__dirname + '/**/*.entity{.ts,.js}'],
 	synchronize: false,
-	logging: true,
+	logging: process.env.NODE_ENV === 'production' ? false : true,
 	migrations: ['dist/migrations/*.js'],
-	// migrations: ['dist/migrations/*.js', 'migrations/*.ts'],
-	// migrations: [__dirname + '/migrations/**/*{.ts,.js}'],
 	migrationsTransactionMode: 'each',
 	cli: {
 		migrationsDir: 'migrations',
 	},
-	// namingStrategy: new SnakeNamingStrategy(),
-};
+} as ConnectionOptions;
 
-export default config;
+// import { ConnectionOptions } from 'typeorm';
+
+// const config: ConnectionOptions = {
+// 	type: 'postgres',
+// 	host: 'postgres',
+// 	port: 5432,
+// 	username: 'postgres',
+// 	password: process.env.POSTGRES_PASSWORD,
+// 	// password: '12345',
+// 	database: 'conduit',
+// 	// entities: ['dist/**/*.entity.js'],
+// 	entities: [__dirname + '/**/*.entity{.ts,.js}'],
+// 	synchronize: false,
+// 	logging: process.env.NODE_ENV === 'production' ? false : true,
+// 	migrations: ['dist/migrations/*.js'],
+// 	migrationsTransactionMode: 'each',
+// 	cli: {
+// 		migrationsDir: 'migrations',
+// 	},
+// };
+
+// export default config;

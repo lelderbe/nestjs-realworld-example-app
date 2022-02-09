@@ -19,7 +19,7 @@ export class ValidationPipe implements PipeTransform<any> {
 		) {
 			return value;
 		}
-		const object = plainToClass(metadata.metatype, value);
+		const object = plainToClass(metadata.metatype, value || {});
 		const errors = await validate(object, this.validatorOptions);
 		if (errors.length > 0) {
 			throw new UnprocessableEntityException({

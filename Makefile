@@ -12,6 +12,9 @@ stop:
 build:
 		docker-compose ${COMPOSE_OPTS} build
 
+env:
+		docker-compose ${COMPOSE_OPTS} exec node env
+
 ps:
 		docker-compose ${COMPOSE_OPTS} ps
 			
@@ -23,6 +26,9 @@ migration-down:
 
 db-seed:
 		docker-compose ${COMPOSE_OPTS} exec node yarn db:seed
+
+db-seed-down:
+		docker-compose ${COMPOSE_OPTS} exec node yarn db:seed-down
 
 db-drop:
 		docker-compose ${COMPOSE_OPTS} exec node yarn db:drop

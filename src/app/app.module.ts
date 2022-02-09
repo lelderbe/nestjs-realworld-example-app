@@ -5,7 +5,7 @@ import { AppService } from './app.service';
 import { TagsModule } from '@/tags/tags.module';
 import { UsersModule } from '@/users/users.module';
 import { ArticlesModule } from '@/articles/articles.module';
-import config from '../ormconfig';
+import config from '@/ormconfig';
 import { AuthMiddleware } from '@/users/middlewares/auth.middleware';
 import { ProfilesModule } from '@/profiles/profiles.module';
 

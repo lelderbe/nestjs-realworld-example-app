@@ -35,7 +35,6 @@ export class Article {
 	@CreateDateColumn({ type: 'timestamp' })
 	createdAt: Date;
 
-	// @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
 	@UpdateDateColumn({ type: 'timestamp' })
 	updatedAt: Date;
 

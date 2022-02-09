@@ -1,6 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class aa1642783150644 implements MigrationInterface {
+export class SeedData1642783150644 implements MigrationInterface {
 	public async up(queryRunner: QueryRunner): Promise<void> {
 		await queryRunner.query(`
 			INSERT INTO tags (title) VALUES
@@ -19,8 +19,8 @@ export class aa1642783150644 implements MigrationInterface {
 
 		await queryRunner.query(`
 			INSERT INTO articles (slug, title, description, body, "tagList", "authorId") VALUES
-				('javascript-rulez', 'JavaScript rulez', 'Description about JavaScript', 'JavaScript story body here', {JavaScript}, '7667cb47-9e1f-48aa-ad01-10e86921bf6d'),
-				('python-the-best', 'Python the best!', 'Description about Python', 'Python story body here', {Python,code}, '40ce66ea-77a5-492e-a944-a1b0d8a28773');
+				('javascript-rulez', 'JavaScript rulez', 'Description about JavaScript', 'JavaScript story body here', '{JavaScript}', '7667cb47-9e1f-48aa-ad01-10e86921bf6d'),
+				('python-the-best', 'Python the best!', 'Description about Python', 'Python story body here', '{Python,code}', '40ce66ea-77a5-492e-a944-a1b0d8a28773');
 		`);
 	}
 

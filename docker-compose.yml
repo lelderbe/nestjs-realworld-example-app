@@ -17,7 +17,7 @@ services:
     env_file:
       - .env
     environment:
-      POSTGRES_PASSWORD: ${TYPEORM_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - 5000:3000
     restart: unless-stopped
@@ -29,7 +29,7 @@ services:
     networks:
       - local
     environment:
-      POSTGRES_PASSWORD: ${TYPEORM_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - 4000:5432
     restart: unless-stopped

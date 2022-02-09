@@ -39,9 +39,7 @@ export class UsersService {
 			}
 			throw new UnprocessableEntityException({ errors });
 		}
-		// TODO: use .create method
-		const user = new User();
-		Object.assign(user, input);
+		const user = this.usersRepository.create(input);
 		return this.usersRepository.save(user);
 	}
 
@@ -78,13 +76,6 @@ export class UsersService {
 		);
 	}
 
-	async findOneWithFavorites(userId: string): Promise<User> {
-		return this.usersRepository.findOne(
-			{ id: userId },
-			{ relations: ['favorites'] },
-		);
-	}
-
 	async findOneByIdWithFavoritesAndFollow(userId: string): Promise<User> {
 		return this.usersRepository.findOne(
 			{ id: userId },
@@ -92,7 +83,6 @@ export class UsersService {
 		);
 	}
 
-	// TODO: how about accept userId instead of user object
 	async update(user: User, input: UpdateUserInput): Promise<User> {
 		const userByEmail =
 			input.email && user.email !== input.email
@@ -128,7 +118,6 @@ export class UsersService {
 		if (!user) {
 			throw new UnauthorizedException('Not authorized');
 		}
-		// TODO make better
 		const isNotFavorited =
 			user.favorites.findIndex(
 				(articleInFavorites) => articleInFavorites.id === article.id,
@@ -153,7 +142,6 @@ export class UsersService {
 		if (!user) {
 			throw new UnauthorizedException('Not authorized');
 		}
-		// TODO make better
 		const index = user.favorites.findIndex(
 			(articleInFavorites) => articleInFavorites.id === article.id,
 		);
@@ -180,7 +168,6 @@ export class UsersService {
 			throw new UnauthorizedException('Not authorized');
 		}
 		const { password, ...rest } = user;
-		// TODO: make some object return?
 		return {
 			user: { ...rest, token: this.generateJwt(user) },
 		};
