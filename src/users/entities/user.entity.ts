@@ -23,14 +23,14 @@ export class User {
 	@Column()
 	email: string;
 
-	@Column({ select: false })
-	password: string;
-
 	@Column({ nullable: true })
 	bio: string;
 
 	@Column({ nullable: true })
 	image: string;
+
+	@Column({ select: false })
+	password: string;
 
 	@BeforeInsert()
 	@BeforeUpdate()

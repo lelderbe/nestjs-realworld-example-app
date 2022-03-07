@@ -5,11 +5,11 @@ import {
 	UnauthorizedException,
 	UnprocessableEntityException,
 } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { FindConditions, FindOneOptions, ILike, Raw, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CreateUserInput } from './dto/create-user.input';
 import { User } from './entities/user.entity';
-import { IUserResponse } from './types/user-response.interface';
+import { UserResponse } from './types/user-response.interface';
 import { UpdateUserInput } from './dto/update-user.input';
 import { Article } from '@/articles/entities/article.entity';
 
@@ -23,13 +23,34 @@ export class UsersService {
 	async create(input: CreateUserInput): Promise<User> {
 		// TODO: make it better - use citext maybe
 		// mail@mail.ru == MAIL@mail.ru atm
-		const userByEmail = await this.usersRepository.findOne({
-			email: input.email,
-		});
-		const userByUsername = await this.usersRepository.findOne({
-			username: input.username,
-		});
+		// const userByEmail = await this.usersRepository.findOne({
+		// 	email: input.email,
+		// });
+		// const userByEmail = await this.findOneByEmail(input.email);
+		// const userByEmail = await this.usersRepository.findOne({
+		// 	email: ILike(input.email),
+		// });
+		// const userByEmail = await this.findOne({
+		// 	email: ILike(input.email),
+		// });
+		// const userByEmail = await this.usersRepository.findOne({
+		// 	email: Raw((alias) => `lower(${alias}) = lower(:email)`, {
+		// 		email: input.email,
+		// 	}),
+		// });
+		const userByEmail = await this.findOneByEmail(input.email);
+		// TODO: use citext maybe here too?
+		// const userByUsername = await this.usersRepository.findOne({
+		// 	username: input.username,
+		// });
+		// const userByUsername = await this.usersRepository.findOne({
+		// 	username: Raw((alias) => `lower(${alias}) = lower(:username)`, {
+		// 		username: input.username,
+		// 	}),
+		// });
+		const userByUsername = await this.findOneByUsername(input.username);
 		if (userByEmail || userByUsername) {
+			console.log(userByEmail, userByUsername);
 			const errors = {};
 			if (userByEmail) {
 				errors['email'] = ['email is already taken'];
@@ -43,56 +64,46 @@ export class UsersService {
 		return this.usersRepository.save(user);
 	}
 
-	async findOne(id: string): Promise<User> {
-		return this.usersRepository.findOne({ id });
+	async findOne(
+		conditions: FindConditions<User>,
+		options?: FindOneOptions<User>,
+	): Promise<User> {
+		return this.usersRepository.findOne(conditions, options);
 	}
 
 	async findOneByEmail(email: string): Promise<User> {
-		return this.usersRepository.findOne({ email });
+		return this.usersRepository.findOne({
+			email: Raw((alias) => `lower(${alias}) = lower(:email)`, {
+				email,
+			}),
+		});
 	}
 
-	async findOneByName(username: string): Promise<User> {
-		return this.usersRepository.findOne({ username });
+	async findOneByUsername(username: string): Promise<User> {
+		return this.usersRepository.findOne({
+			username: Raw((alias) => `lower(${alias}) = lower(:username)`, {
+				username,
+			}),
+		});
 	}
 
-	async findOneByEmailWithPassword(email: string): Promise<User> {
-		return this.usersRepository.findOne(
-			{ email },
-			{ select: ['id', 'username', 'email', 'password', 'bio', 'image'] },
-		);
-	}
+	// async findOne(id: string): Promise<User> {
+	// 	return this.usersRepository.findOne({ id });
+	// }
 
-	async findOneByIdWithFavorites(userId: string): Promise<User> {
-		return this.usersRepository.findOne(
-			{ id: userId },
-			{ relations: ['favorites'] },
-		);
-	}
-
-	async findOneByNameWithFavorites(username: string): Promise<User> {
-		return this.usersRepository.findOne(
-			{ username },
-			{ relations: ['favorites'] },
-		);
-	}
-
-	async findOneByIdWithFavoritesAndFollow(userId: string): Promise<User> {
-		return this.usersRepository.findOne(
-			{ id: userId },
-			{ relations: ['favorites', 'follow'] },
-		);
-	}
-
-	async update(user: User, input: UpdateUserInput): Promise<User> {
+	async update(userId: string, input: UpdateUserInput): Promise<User> {
+		const user = await this.findOne({ id: userId });
 		const userByEmail =
-			input.email && user.email !== input.email
-				? await this.usersRepository.findOne({ email: input.email })
+			// ? await this.findOne({ email: input.email })
+			input.email &&
+				user.email.toLocaleLowerCase() !== input.email.toLocaleLowerCase()
+				? await this.findOneByEmail(input.email)
 				: null;
 		const userByUsername =
-			input.username && user.username !== input.username
-				? await this.usersRepository.findOne({
-					username: input.username,
-				})
+			// ? await this.findOne({ username: input.username })
+			input.username &&
+				user.username.toLocaleLowerCase() !== input.username.toLocaleLowerCase()
+				? await this.findOneByUsername(input.username)
 				: null;
 		if (userByEmail || userByUsername) {
 			const errors = {};
@@ -108,10 +119,7 @@ export class UsersService {
 		return this.usersRepository.save(user);
 	}
 
-	async addArticleToFavorites(
-		userId: string,
-		article: Article,
-	): Promise<boolean> {
+	async addArticleToFavorites(userId: string, article: Article): Promise<boolean> {
 		const user = await this.usersRepository.findOne(userId, {
 			relations: ['favorites'],
 		});
@@ -132,10 +140,7 @@ export class UsersService {
 		return true;
 	}
 
-	async removeArticleFromFavorites(
-		userId: string,
-		article: Article,
-	): Promise<boolean> {
+	async removeArticleFromFavorites(userId: string, article: Article): Promise<boolean> {
 		const user = await this.usersRepository.findOne(userId, {
 			relations: ['favorites'],
 		});
@@ -155,15 +160,20 @@ export class UsersService {
 		return true;
 	}
 
-	async getValidateUser(email: string, password: string): Promise<User> {
-		const user = await this.findOneByEmailWithPassword(email);
+	async getValidatedUser(email: string, password: string): Promise<User> {
+		const user = await this.findOne(
+			{ email },
+			{ select: ['id', 'username', 'email', 'password', 'bio', 'image'] },
+		);
 		if (!user || !(await bcrypt.compare(password, user.password))) {
+			// TODO: make constants for exceptions text
 			throw new UnauthorizedException('Invalid credentials');
 		}
+		delete user.password;
 		return user;
 	}
 
-	buildUserResponse(user: User): IUserResponse {
+	buildUserResponse(user: User): UserResponse {
 		if (!user) {
 			throw new UnauthorizedException('Not authorized');
 		}

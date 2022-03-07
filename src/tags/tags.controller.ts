@@ -9,6 +9,11 @@ export class TagsController {
 	@Get()
 	async findAll(): Promise<ITagsResponse> {
 		const tags = await this.tagsService.findAll();
+		console.log('tags:', tags);
+		console.log(
+			'mapped:',
+			tags.map((tag) => tag.title),
+		);
 		return { tags: tags.map((tag) => tag.title) };
 	}
 }

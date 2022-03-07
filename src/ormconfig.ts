@@ -1,6 +1,6 @@
 import { ConnectionOptions } from 'typeorm';
 
-export default {
+const config: ConnectionOptions = {
 	type: 'postgres',
 	host: 'postgres',
 	port: 5432,
@@ -16,27 +16,6 @@ export default {
 	cli: {
 		migrationsDir: 'migrations',
 	},
-} as ConnectionOptions;
+};
 
-// import { ConnectionOptions } from 'typeorm';
-
-// const config: ConnectionOptions = {
-// 	type: 'postgres',
-// 	host: 'postgres',
-// 	port: 5432,
-// 	username: 'postgres',
-// 	password: process.env.POSTGRES_PASSWORD,
-// 	// password: '12345',
-// 	database: 'conduit',
-// 	// entities: ['dist/**/*.entity.js'],
-// 	entities: [__dirname + '/**/*.entity{.ts,.js}'],
-// 	synchronize: false,
-// 	logging: process.env.NODE_ENV === 'production' ? false : true,
-// 	migrations: ['dist/migrations/*.js'],
-// 	migrationsTransactionMode: 'each',
-// 	cli: {
-// 		migrationsDir: 'migrations',
-// 	},
-// };
-
-// export default config;
+export default config;

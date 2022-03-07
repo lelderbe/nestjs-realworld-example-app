@@ -79,8 +79,12 @@ export class ArticlesService {
 		}
 		if (filter.favorited) {
 			const favoritedBy =
-				await this.usersService.findOneByNameWithFavorites(
-					filter.favorited,
+				// await this.usersService.findOneByNameWithFavorites(
+				// 	filter.favorited,
+				// );
+				await this.usersService.findOne(
+					{ username: filter.favorited },
+					{ relations: ['favorites'] },
 				);
 			if (favoritedBy) {
 				const ids = favoritedBy.favorites.map((article) => article.id);
@@ -95,11 +99,7 @@ export class ArticlesService {
 			.take(filter.limit)
 			.orderBy('articles.createdAt', 'DESC');
 		const [articles, articlesCount] = await qBuilder.getManyAndCount();
-		return this.buildArticlesResponse(
-			articles,
-			articlesCount,
-			currentUserId,
-		);
+		return this.buildArticlesResponse(articles, articlesCount, currentUserId);
 	}
 
 	async getFeed(
@@ -108,7 +108,11 @@ export class ArticlesService {
 	): Promise<IArticlesResponse> {
 		filter.offset = filter.offset ? filter.offset : OFFSET;
 		filter.limit = filter.limit ? filter.limit : LIMIT;
-		const user = await this.usersRepository.findOne(
+		// const user = await this.usersRepository.findOne(
+		// 	{ id: currentUserId },
+		// 	{ relations: ['follow'] },
+		// );
+		const user = await this.usersService.findOne(
 			{ id: currentUserId },
 			{ relations: ['follow'] },
 		);
@@ -128,11 +132,7 @@ export class ArticlesService {
 			.take(filter.limit)
 			.orderBy('articles.createdAt', 'DESC');
 		const [articles, articlesCount] = await qBuilder.getManyAndCount();
-		return this.buildArticlesResponse(
-			articles,
-			articlesCount,
-			currentUserId,
-		);
+		return this.buildArticlesResponse(articles, articlesCount, currentUserId);
 	}
 
 	async update(
@@ -159,10 +159,7 @@ export class ArticlesService {
 		return this.articlesRepository.softRemove(article);
 	}
 
-	async addArticleToFavorites(
-		slug: string,
-		currentUserId: string,
-	): Promise<Article> {
+	async addArticleToFavorites(slug: string, currentUserId: string): Promise<Article> {
 		const article = await this.findArticleBySlug(slug);
 		// TODO use transaction
 		const success = await this.usersService.addArticleToFavorites(
@@ -227,8 +224,12 @@ export class ArticlesService {
 		article: Article,
 		currentUserId: string,
 	): Promise<IArticleResponse> {
-		const user = await this.usersService.findOneByIdWithFavoritesAndFollow(
-			currentUserId,
+		// const user = await this.usersService.findOneByIdWithFavoritesAndFollow(
+		// 	currentUserId,
+		// );
+		const user = await this.usersService.findOne(
+			{ id: currentUserId },
+			{ relations: ['favorites', 'follow'] },
 		);
 		return this.getArticleResponse(article, user);
 	}
@@ -238,8 +239,12 @@ export class ArticlesService {
 		articlesCount: number,
 		currentUserId: string,
 	): Promise<IArticlesResponse> {
-		const user = await this.usersService.findOneByIdWithFavoritesAndFollow(
-			currentUserId,
+		// const user = await this.usersService.findOneByIdWithFavoritesAndFollow(
+		// 	currentUserId,
+		// );
+		const user = await this.usersService.findOne(
+			{ id: currentUserId },
+			{ relations: ['favorites', 'follow'] },
 		);
 		const articlesWithFav: ArticleType[] = await Promise.all(
 			articles.map(async (article) => {
@@ -256,7 +261,8 @@ export class ArticlesService {
 		currentUserId: string,
 	): Promise<Comment> {
 		const article = await this.findArticleBySlug(slug);
-		const user = await this.usersService.findOne(currentUserId);
+		// const user = await this.usersService.findOne(currentUserId);
+		const user = await this.usersService.findOne({ id: currentUserId });
 		if (!user) {
 			throw new UnauthorizedException('Not authorized');
 		}
@@ -280,11 +286,7 @@ export class ArticlesService {
 			.andWhere('article.slug = :slug', { slug })
 			.orderBy('comments.createdAt', 'DESC');
 		const [comments, commentsCount] = await qBuilder.getManyAndCount();
-		return this.buildCommentsResponse(
-			comments,
-			commentsCount,
-			currentUserId,
-		);
+		return this.buildCommentsResponse(comments, commentsCount, currentUserId);
 	}
 
 	async removeCommentFromArticle(
@@ -330,8 +332,12 @@ export class ArticlesService {
 		comment: Comment,
 		currentUserId: string,
 	): Promise<ICommentResponse> {
-		const user = await this.usersService.findOneByIdWithFavoritesAndFollow(
-			currentUserId,
+		// const user = await this.usersService.findOneByIdWithFavoritesAndFollow(
+		// 	currentUserId,
+		// );
+		const user = await this.usersService.findOne(
+			{ id: currentUserId },
+			{ relations: ['favorites', 'follow'] },
 		);
 		return this.getCommentResponse(comment, user);
 	}
@@ -341,8 +347,12 @@ export class ArticlesService {
 		commentsCount: number,
 		currentUserId: string,
 	): Promise<ICommentsResponse> {
-		const user = await this.usersService.findOneByIdWithFavoritesAndFollow(
-			currentUserId,
+		// const user = await this.usersService.findOneByIdWithFavoritesAndFollow(
+		// 	currentUserId,
+		// );
+		const user = await this.usersService.findOne(
+			{ id: currentUserId },
+			{ relations: ['favorites', 'follow'] },
 		);
 		const commentsRes = await Promise.all(
 			comments.map(async (item) => {
