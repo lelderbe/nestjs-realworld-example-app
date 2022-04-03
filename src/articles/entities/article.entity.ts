@@ -1,18 +1,17 @@
 import {
 	Column,
-	CreateDateColumn,
-	DeleteDateColumn,
 	Entity,
+	ManyToMany,
 	ManyToOne,
 	OneToMany,
 	PrimaryGeneratedColumn,
-	UpdateDateColumn,
 } from 'typeorm';
 import { User } from '@/users/entities/user.entity';
 import { Comment } from './comment.entity';
+import { BaseEntity } from '@/app/entities/base.entity';
 
 @Entity('articles')
-export class Article {
+export class Article extends BaseEntity {
 	@PrimaryGeneratedColumn('uuid')
 	id: string;
 
@@ -31,23 +30,10 @@ export class Article {
 	@Column({ type: 'varchar', array: true, default: [] })
 	tagList: string[];
 
-	// @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-	@CreateDateColumn({ type: 'timestamp' })
-	createdAt: Date;
-
-	@UpdateDateColumn({ type: 'timestamp' })
-	updatedAt: Date;
-
-	// @BeforeUpdate()
-	// updateTimestamp() {
-	// 	this.updatedAt = new Date();
-	// }
-
-	@DeleteDateColumn({ type: 'timestamp' })
-	deletedAt: Date;
-
 	@Column({ default: 0 })
 	favoritesCount: number;
+
+	favorited: boolean;
 
 	// Relations
 
@@ -57,8 +43,6 @@ export class Article {
 	@OneToMany(() => Comment, (comment) => comment.article)
 	comments: Comment[];
 
-	// 	cascade: true,
-	// 	eager: true,
-	// @ManyToMany(() => User, (tag) => tag.articles, {})
-	// users: User[];
+	@ManyToMany(() => User, (user) => user.favorites)
+	favoritedBy: User[];
 }

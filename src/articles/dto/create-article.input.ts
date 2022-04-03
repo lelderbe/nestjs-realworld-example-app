@@ -6,9 +6,11 @@ export class CreateArticleInput {
 	readonly title: string;
 
 	@IsNotEmpty()
+	@IsString()
 	readonly description: string;
 
 	@IsNotEmpty()
+	@IsString()
 	readonly body: string;
 
 	@IsOptional()

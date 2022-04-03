@@ -1,31 +1,15 @@
-import {
-	Column,
-	CreateDateColumn,
-	DeleteDateColumn,
-	Entity,
-	ManyToOne,
-	PrimaryGeneratedColumn,
-	UpdateDateColumn,
-} from 'typeorm';
+import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { User } from '@/users/entities/user.entity';
 import { Article } from './article.entity';
+import { BaseEntity } from '@/app/entities/base.entity';
 
 @Entity('comments')
-export class Comment {
+export class Comment extends BaseEntity {
 	@PrimaryGeneratedColumn()
 	id: string;
 
 	@Column()
 	body: string;
-
-	@CreateDateColumn({ type: 'timestamp' })
-	createdAt: Date;
-
-	@UpdateDateColumn({ type: 'timestamp' })
-	updatedAt: Date;
-
-	@DeleteDateColumn({ type: 'timestamp' })
-	deletedAt: Date;
 
 	// Relations
 

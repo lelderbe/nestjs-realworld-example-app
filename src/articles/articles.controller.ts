@@ -13,14 +13,14 @@ import { CurrentUser } from '@/users/decorators/user.decorator';
 import { User } from '@/users/entities/user.entity';
 import { ArticlesService } from './articles.service';
 import { CreateArticleInput } from './dto/create-article.input';
-import { IArticleResponse } from './types/article-response.interface';
+import { ArticleResponse } from './types/article-response.interface';
 import { UpdateArticleInput } from './dto/update-article.input';
 import { AuthGuard } from '@/users/guards/auth.guard';
-import { IArticlesResponse } from './types/articles-response.interface';
+import { ArticlesResponse } from './types/articles-response.interface';
 import { FilterArticleInput } from './dto/filter-article.input';
 import { CreateCommentInput } from './dto/create-comment.input';
-import { ICommentsResponse } from './types/comments-response.interface';
-import { ICommentResponse } from './types/comment-response.interface';
+import { CommentsResponse } from './types/comments-response.interface';
+import { CommentResponse } from './types/comment-response.interface';
 
 @Controller('articles')
 export class ArticlesController {
@@ -28,19 +28,19 @@ export class ArticlesController {
 
 	@Get()
 	async findAll(
-		@Query() filter: FilterArticleInput,
+		@Query() input: FilterArticleInput,
 		@CurrentUser('id') userId: string,
-	): Promise<IArticlesResponse> {
-		return this.articlesService.findAll(filter, userId);
+	): Promise<ArticlesResponse> {
+		return this.articlesService.findAll(input, userId);
 	}
 
 	@UseGuards(AuthGuard)
 	@Get('feed')
 	async getFeed(
-		@Query() filter: FilterArticleInput,
+		@Query() input: FilterArticleInput,
 		@CurrentUser('id') userId: string,
-	) {
-		return this.articlesService.getFeed(filter, userId);
+	): Promise<ArticlesResponse> {
+		return this.articlesService.getFeed(input, userId);
 	}
 
 	@UseGuards(AuthGuard)
@@ -48,7 +48,7 @@ export class ArticlesController {
 	async createArticle(
 		@Body('article') input: CreateArticleInput,
 		@CurrentUser() user: User,
-	): Promise<IArticleResponse> {
+	): Promise<ArticleResponse> {
 		const article = await this.articlesService.create(input, user);
 		return this.articlesService.buildArticleResponse(article, user.id);
 	}
@@ -57,7 +57,7 @@ export class ArticlesController {
 	async getArticle(
 		@Param('slug') slug: string,
 		@CurrentUser('id') userId: string,
-	): Promise<IArticleResponse> {
+	): Promise<ArticleResponse> {
 		const article = await this.articlesService.findArticleBySlug(slug);
 		return this.articlesService.buildArticleResponse(article, userId);
 	}
@@ -74,11 +74,11 @@ export class ArticlesController {
 	@UseGuards(AuthGuard)
 	@Put(':slug')
 	async updateArticle(
-		@Body('article') input: UpdateArticleInput,
 		@Param('slug') slug: string,
+		@Body('article') input: UpdateArticleInput,
 		@CurrentUser('id') userId: string,
-	): Promise<IArticleResponse> {
-		const article = await this.articlesService.update(slug, userId, input);
+	): Promise<ArticleResponse> {
+		const article = await this.articlesService.update(slug, input, userId);
 		return this.articlesService.buildArticleResponse(article, userId);
 	}
 
@@ -87,11 +87,8 @@ export class ArticlesController {
 	async addArticleToFavorites(
 		@Param('slug') slug: string,
 		@CurrentUser('id') userId: string,
-	): Promise<IArticleResponse> {
-		const article = await this.articlesService.addArticleToFavorites(
-			slug,
-			userId,
-		);
+	): Promise<ArticleResponse> {
+		const article = await this.articlesService.addArticleToFavorites(slug, userId);
 		return this.articlesService.buildArticleResponse(article, userId);
 	}
 
@@ -100,7 +97,7 @@ export class ArticlesController {
 	async removeArticleFromFavorites(
 		@Param('slug') slug: string,
 		@CurrentUser('id') userId: string,
-	): Promise<IArticleResponse> {
+	): Promise<ArticleResponse> {
 		const article = await this.articlesService.removeArticleFromFavorites(
 			slug,
 			userId,
@@ -114,7 +111,7 @@ export class ArticlesController {
 		@Param('slug') slug: string,
 		@Body('comment') input: CreateCommentInput,
 		@CurrentUser('id') userId: string,
-	): Promise<ICommentResponse> {
+	): Promise<CommentResponse> {
 		const comment = await this.articlesService.addCommentToArticle(
 			slug,
 			input,
@@ -127,7 +124,7 @@ export class ArticlesController {
 	async getArticleComments(
 		@Param('slug') slug: string,
 		@CurrentUser('id') userId: string,
-	): Promise<ICommentsResponse> {
+	): Promise<CommentsResponse> {
 		return this.articlesService.getArticleComments(slug, userId);
 	}
 

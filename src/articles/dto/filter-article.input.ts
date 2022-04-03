@@ -1,24 +1,32 @@
 import { Type } from 'class-transformer';
-import { IsOptional, IsString } from 'class-validator';
+import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import { LIMIT, MAX_LIMIT, OFFSET } from '@/app/constants';
 
 export class FilterArticleInput {
 	@IsOptional()
 	@Type(() => Number)
-	offset?: number;
+	@IsInt()
+	@Min(0)
+	// @Transform(({ value }) => (value ? value : OFFSET))
+	readonly offset?: number = OFFSET;
 
 	@IsOptional()
 	@Type(() => Number)
-	limit?: number;
+	@IsInt()
+	@Min(1)
+	@Max(MAX_LIMIT)
+	// @Transform(({ value }) => (value ? value : LIMIT))
+	readonly limit?: number = LIMIT;
 
 	@IsOptional()
 	@IsString()
-	tag?: string;
+	readonly tag?: string;
 
 	@IsOptional()
 	@IsString()
-	author?: string;
+	readonly author?: string;
 
 	@IsOptional()
 	@IsString()
-	favorited?: string;
+	readonly favorited?: string;
 }

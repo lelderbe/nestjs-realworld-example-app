@@ -1,5 +1,5 @@
 import { Comment } from '@/articles/entities/comment.entity';
 
-export interface ICommentResponse {
+export interface CommentResponse {
 	comment: Comment;
 }

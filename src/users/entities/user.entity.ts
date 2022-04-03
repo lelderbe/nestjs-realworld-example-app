@@ -32,15 +32,6 @@ export class User {
 	@Column({ select: false })
 	password: string;
 
-	@BeforeInsert()
-	@BeforeUpdate()
-	async hashPassword() {
-		if (this.password) {
-			const saltOrRounds = 10;
-			this.password = await bcrypt.hash(this.password, saltOrRounds);
-		}
-	}
-
 	// Relations
 
 	@OneToMany(() => Article, (article) => article.author)
@@ -49,12 +40,22 @@ export class User {
 	@OneToMany(() => Comment, (comment) => comment.author)
 	comments: Comment[];
 
-	// @ManyToMany(() => Article, (article) => article.users)
-	@ManyToMany(() => Article)
-	@JoinTable()
+	@ManyToMany(() => Article, (article) => article.favoritedBy)
+	@JoinTable({ name: 'users_favorites_articles' })
 	favorites: Article[];
 
 	@ManyToMany(() => User)
 	@JoinTable()
 	follow: User[];
+
+	// Listeners
+
+	@BeforeInsert()
+	@BeforeUpdate()
+	async hashPassword() {
+		if (this.password) {
+			const saltOrRounds = 10;
+			this.password = await bcrypt.hash(this.password, saltOrRounds);
+		}
+	}
 }

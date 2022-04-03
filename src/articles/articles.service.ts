@@ -6,22 +6,27 @@ import {
 } from '@nestjs/common';
 import slugify from 'slugify';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Connection, Repository } from 'typeorm';
 import { CreateArticleInput } from './dto/create-article.input';
 import { User } from '@/users/entities/user.entity';
 import { Article } from './entities/article.entity';
 import { UpdateArticleInput } from './dto/update-article.input';
-import { IArticleResponse } from './types/article-response.interface';
-import { IArticlesResponse } from './types/articles-response.interface';
+import { ArticleResponse } from './types/article-response.interface';
+import { ArticlesResponse } from './types/articles-response.interface';
 import { TagsService } from '@/tags/tags.service';
 import { FilterArticleInput } from './dto/filter-article.input';
-import { LIMIT, OFFSET } from '@/app/constants';
 import { UsersService } from '@/users/users.service';
 import { ArticleType } from './types/article.type';
 import { CreateCommentInput } from './dto/create-comment.input';
 import { Comment } from './entities/comment.entity';
-import { ICommentResponse } from './types/comment-response.interface';
-import { ICommentsResponse } from './types/comments-response.interface';
+import { CommentResponse } from './types/comment-response.interface';
+import { CommentsResponse } from './types/comments-response.interface';
+import {
+	ARTICLE_DOES_NOT_EXIST,
+	ARTICLE_NOT_OWNER,
+	COMMENT_NOT_FOUND,
+	NOT_AUTHORIZED,
+} from '@/app/constants';
 
 @Injectable()
 export class ArticlesService {
@@ -34,6 +39,7 @@ export class ArticlesService {
 		private readonly commentsRepository: Repository<Comment>,
 		private readonly tagsService: TagsService,
 		private readonly usersService: UsersService,
+		private readonly connection: Connection,
 	) {}
 
 	async create(input: CreateArticleInput, user: User): Promise<Article> {
@@ -52,62 +58,58 @@ export class ArticlesService {
 	async findArticleBySlug(slug: string): Promise<Article> {
 		const article = await this.articlesRepository.findOne({ slug });
 		if (!article) {
-			throw new NotFoundException('Article does not exist');
+			throw new NotFoundException(ARTICLE_DOES_NOT_EXIST);
 		}
 		return article;
 	}
 
 	async findAll(
-		filter: FilterArticleInput,
+		input: FilterArticleInput,
 		currentUserId: string,
-	): Promise<IArticlesResponse> {
-		filter.offset = filter.offset ? filter.offset : OFFSET;
-		filter.limit = filter.limit ? filter.limit : LIMIT;
-		// let qBuilder = getRepository(Article).createQueryBuilder('articles');
-		let qBuilder = this.articlesRepository
+	): Promise<ArticlesResponse> {
+		const qBuilder = this.articlesRepository
 			.createQueryBuilder('articles')
-			.leftJoinAndSelect('articles.author', 'author');
-		if (filter.author) {
-			qBuilder = qBuilder.andWhere('author.username = :authorUsername', {
-				authorUsername: filter.author,
+			.leftJoinAndSelect('articles.author', 'author')
+			.leftJoin('articles.favoritedBy', 'favoritedBy')
+			.skip(input.offset)
+			.take(input.limit)
+			.orderBy('articles.createdAt', 'DESC');
+		if (input.author) {
+			qBuilder.andWhere('author.username = :authorUsername', {
+				authorUsername: input.author,
 			});
 		}
-		if (filter.tag) {
-			qBuilder = qBuilder.andWhere(':tag = ANY (articles.tagList)', {
-				tag: filter.tag,
+		if (input.tag) {
+			qBuilder.andWhere(':tag = ANY (articles.tagList)', {
+				tag: input.tag,
 			});
 		}
-		if (filter.favorited) {
-			const favoritedBy =
-				// await this.usersService.findOneByNameWithFavorites(
-				// 	filter.favorited,
-				// );
-				await this.usersService.findOne(
-					{ username: filter.favorited },
-					{ relations: ['favorites'] },
-				);
+		if (input.favorited) {
+			qBuilder.andWhere('favoritedBy.username = :favoritedUsername', {
+				favoritedUsername: input.favorited,
+			});
+			/*
+			// Alternative solution:
+
+			const favoritedBy = await this.usersService.findOne(
+				{ username: input.favorited },
+				{ relations: ['favorites'] },
+			);
 			if (favoritedBy) {
 				const ids = favoritedBy.favorites.map((article) => article.id);
 				ids.push(null);
-				qBuilder = qBuilder.andWhere('articles.id IN (:...ids)', {
-					ids,
-				});
+				qBuilder.andWhere('articles.id IN (:...ids)', { ids });
 			}
+			*/
 		}
-		qBuilder = qBuilder
-			.skip(filter.offset)
-			.take(filter.limit)
-			.orderBy('articles.createdAt', 'DESC');
 		const [articles, articlesCount] = await qBuilder.getManyAndCount();
 		return this.buildArticlesResponse(articles, articlesCount, currentUserId);
 	}
 
 	async getFeed(
-		filter: FilterArticleInput,
+		input: FilterArticleInput,
 		currentUserId: string,
-	): Promise<IArticlesResponse> {
-		filter.offset = filter.offset ? filter.offset : OFFSET;
-		filter.limit = filter.limit ? filter.limit : LIMIT;
+	): Promise<ArticlesResponse> {
 		// const user = await this.usersRepository.findOne(
 		// 	{ id: currentUserId },
 		// 	{ relations: ['follow'] },
@@ -117,7 +119,7 @@ export class ArticlesService {
 			{ relations: ['follow'] },
 		);
 		if (!user) {
-			throw new UnauthorizedException('Unauthorized');
+			throw new UnauthorizedException(NOT_AUTHORIZED);
 		}
 		const followIds = user.follow.map((item) => item.id);
 		if (!followIds.length) {
@@ -128,8 +130,8 @@ export class ArticlesService {
 			.createQueryBuilder('articles')
 			.leftJoinAndSelect('articles.author', 'author')
 			.andWhere('author.id IN (:...followIds)', { followIds })
-			.skip(filter.offset)
-			.take(filter.limit)
+			.skip(input.offset)
+			.take(input.limit)
 			.orderBy('articles.createdAt', 'DESC');
 		const [articles, articlesCount] = await qBuilder.getManyAndCount();
 		return this.buildArticlesResponse(articles, articlesCount, currentUserId);
@@ -137,12 +139,12 @@ export class ArticlesService {
 
 	async update(
 		slug: string,
-		currentUserId: string,
 		input: UpdateArticleInput,
+		currentUserId: string,
 	): Promise<Article> {
 		const article = await this.findArticleBySlug(slug);
 		if (article.author.id !== currentUserId) {
-			throw new ForbiddenException('You are not owner of this article');
+			throw new ForbiddenException(ARTICLE_NOT_OWNER);
 		}
 		Object.assign(article, input);
 		if (input.title) {
@@ -154,14 +156,44 @@ export class ArticlesService {
 	async remove(slug: string, currentUserId: string): Promise<Article> {
 		const article = await this.findArticleBySlug(slug);
 		if (article.author.id !== currentUserId) {
-			throw new ForbiddenException('You are not owner of this article');
+			throw new ForbiddenException(ARTICLE_NOT_OWNER);
 		}
 		return this.articlesRepository.softRemove(article);
 	}
 
 	async addArticleToFavorites(slug: string, currentUserId: string): Promise<Article> {
 		const article = await this.findArticleBySlug(slug);
-		// TODO use transaction
+		const alreadyFavorited = await this.articlesRepository
+			.createQueryBuilder('articles')
+			.leftJoin('articles.favoritedBy', 'favoritedBy')
+			.where('favoritedBy.id = :currentUserId', { currentUserId })
+			.andWhere('articles.id = :id', { id: article.id })
+			.getCount();
+
+		if (alreadyFavorited) {
+			return article;
+		}
+
+		const queryRunner = this.connection.createQueryRunner();
+		await queryRunner.connect();
+		await queryRunner.startTransaction();
+		try {
+			await queryRunner.query(`
+				INSERT INTO "users_favorites_articles" ("usersId", "articlesId")
+				VALUES ('${currentUserId}', '${article.id}');
+			`);
+			article.favoritesCount++;
+			await queryRunner.manager.save(article);
+			await queryRunner.commitTransaction();
+		} catch (err) {
+			console.error(err);
+			await queryRunner.rollbackTransaction();
+		} finally {
+			await queryRunner.release();
+		}
+		/*
+		// Alternative solution (need use transaction):
+
 		const success = await this.usersService.addArticleToFavorites(
 			currentUserId,
 			article,
@@ -170,6 +202,7 @@ export class ArticlesService {
 			article.favoritesCount++;
 			return this.articlesRepository.save(article);
 		}
+		*/
 		return article;
 	}
 
@@ -178,7 +211,38 @@ export class ArticlesService {
 		currentUserId: string,
 	): Promise<Article> {
 		const article = await this.findArticleBySlug(slug);
-		// TODO use transaction
+		const alreadyFavorited = await this.articlesRepository
+			.createQueryBuilder('articles')
+			.leftJoin('articles.favoritedBy', 'favoritedBy')
+			.where('favoritedBy.id = :currentUserId', { currentUserId })
+			.andWhere('articles.id = :id', { id: article.id })
+			.getCount();
+
+		if (!alreadyFavorited) {
+			return article;
+		}
+
+		const queryRunner = this.connection.createQueryRunner();
+		await queryRunner.connect();
+		await queryRunner.startTransaction();
+		try {
+			await queryRunner.query(`
+				DELETE FROM "users_favorites_articles"
+				WHERE "usersId" = '${currentUserId}' AND "articlesId" = '${article.id}';
+			`);
+			article.favoritesCount--;
+			await queryRunner.manager.save(article);
+			await queryRunner.commitTransaction();
+		} catch (err) {
+			console.error(err);
+			await queryRunner.rollbackTransaction();
+		} finally {
+			await queryRunner.release();
+		}
+
+		/*
+		// Alternative solution (need use transaction):
+
 		const success = await this.usersService.removeArticleFromFavorites(
 			currentUserId,
 			article,
@@ -187,6 +251,7 @@ export class ArticlesService {
 			article.favoritesCount--;
 			return this.articlesRepository.save(article);
 		}
+		*/
 		return article;
 	}
 
@@ -201,7 +266,7 @@ export class ArticlesService {
 	private async getArticleResponse(
 		article: Article,
 		user: User,
-	): Promise<IArticleResponse> {
+	): Promise<ArticleResponse> {
 		let favorited = false;
 		let following = false;
 		if (user) {
@@ -223,10 +288,7 @@ export class ArticlesService {
 	async buildArticleResponse(
 		article: Article,
 		currentUserId: string,
-	): Promise<IArticleResponse> {
-		// const user = await this.usersService.findOneByIdWithFavoritesAndFollow(
-		// 	currentUserId,
-		// );
+	): Promise<ArticleResponse> {
 		const user = await this.usersService.findOne(
 			{ id: currentUserId },
 			{ relations: ['favorites', 'follow'] },
@@ -238,10 +300,7 @@ export class ArticlesService {
 		articles: Article[],
 		articlesCount: number,
 		currentUserId: string,
-	): Promise<IArticlesResponse> {
-		// const user = await this.usersService.findOneByIdWithFavoritesAndFollow(
-		// 	currentUserId,
-		// );
+	): Promise<ArticlesResponse> {
 		const user = await this.usersService.findOne(
 			{ id: currentUserId },
 			{ relations: ['favorites', 'follow'] },
@@ -264,7 +323,7 @@ export class ArticlesService {
 		// const user = await this.usersService.findOne(currentUserId);
 		const user = await this.usersService.findOne({ id: currentUserId });
 		if (!user) {
-			throw new UnauthorizedException('Not authorized');
+			throw new UnauthorizedException(NOT_AUTHORIZED);
 		}
 		const comment = this.commentsRepository.create({
 			...input,
@@ -278,7 +337,7 @@ export class ArticlesService {
 	async getArticleComments(
 		slug: string,
 		currentUserId: string,
-	): Promise<ICommentsResponse> {
+	): Promise<CommentsResponse> {
 		const qBuilder = this.commentsRepository
 			.createQueryBuilder('comments')
 			.leftJoinAndSelect('comments.article', 'article')
@@ -302,10 +361,10 @@ export class ArticlesService {
 			.andWhere('comments.id = :commentId', { commentId });
 		const comment = await qBuilder.getOne();
 		if (!comment) {
-			throw new NotFoundException('Comment not found');
+			throw new NotFoundException(COMMENT_NOT_FOUND);
 		}
 		if (comment.author.id !== currentUserId) {
-			throw new ForbiddenException('You are not owner of this comment');
+			throw new ForbiddenException(ARTICLE_NOT_OWNER);
 		}
 		return this.commentsRepository.softRemove(comment);
 	}
@@ -313,7 +372,7 @@ export class ArticlesService {
 	private async getCommentResponse(
 		comment: Comment,
 		user: User,
-	): Promise<ICommentResponse> {
+	): Promise<CommentResponse> {
 		let following = false;
 		if (user) {
 			if (user.follow.find((item) => item.id === comment.author.id)) {
@@ -331,10 +390,7 @@ export class ArticlesService {
 	async buildCommentResponse(
 		comment: Comment,
 		currentUserId: string,
-	): Promise<ICommentResponse> {
-		// const user = await this.usersService.findOneByIdWithFavoritesAndFollow(
-		// 	currentUserId,
-		// );
+	): Promise<CommentResponse> {
 		const user = await this.usersService.findOne(
 			{ id: currentUserId },
 			{ relations: ['favorites', 'follow'] },
@@ -346,10 +402,7 @@ export class ArticlesService {
 		comments: Comment[],
 		commentsCount: number,
 		currentUserId: string,
-	): Promise<ICommentsResponse> {
-		// const user = await this.usersService.findOneByIdWithFavoritesAndFollow(
-		// 	currentUserId,
-		// );
+	): Promise<CommentsResponse> {
 		const user = await this.usersService.findOne(
 			{ id: currentUserId },
 			{ relations: ['favorites', 'follow'] },

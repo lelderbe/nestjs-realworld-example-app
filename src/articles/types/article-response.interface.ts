@@ -1,6 +1,5 @@
 import { ArticleType } from './article.type';
 
-export interface IArticleResponse {
-	// article: Article & { favorited: boolean };
+export interface ArticleResponse {
 	article: ArticleType;
 }
