@@ -21,6 +21,7 @@ import { FilterArticleInput } from './dto/filter-article.input';
 import { CreateCommentInput } from './dto/create-comment.input';
 import { CommentsResponse } from './types/comments-response.interface';
 import { CommentResponse } from './types/comment-response.interface';
+import { PaginateFilterInput } from '@/app/dto/paginate-filter.input';
 
 @Controller('articles')
 export class ArticlesController {
@@ -37,7 +38,7 @@ export class ArticlesController {
 	@UseGuards(AuthGuard)
 	@Get('feed')
 	async getFeed(
-		@Query() input: FilterArticleInput,
+		@Query() input: PaginateFilterInput,
 		@CurrentUser('id') userId: string,
 	): Promise<ArticlesResponse> {
 		return this.articlesService.getFeed(input, userId);

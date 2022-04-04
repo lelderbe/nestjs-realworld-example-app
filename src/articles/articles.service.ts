@@ -34,6 +34,8 @@ export class ArticlesService {
 	constructor(
 		@InjectRepository(Article)
 		private readonly articlesRepository: Repository<Article>,
+		@InjectRepository(User)
+		private readonly usersRepository: Repository<User>,
 		@InjectRepository(UsersFavoritesArticles)
 		private readonly favoritesRepository: Repository<UsersFavoritesArticles>,
 		@InjectRepository(Comment)
@@ -89,6 +91,7 @@ export class ArticlesService {
 			qBuilder.andWhere('favoritedBy.username = :favoritedUsername', {
 				favoritedUsername: input.favorited,
 			});
+
 			/*
 			// Alternative solution:
 
@@ -111,26 +114,27 @@ export class ArticlesService {
 		input: FilterArticleInput,
 		currentUserId: string,
 	): Promise<ArticlesResponse> {
-		// const user = await this.usersRepository.findOne(
-		// 	{ id: currentUserId },
-		// 	{ relations: ['follow'] },
-		// );
+		/*
+		// or use repository:
+		const user = await this.usersRepository.findOne(
+			{ id: currentUserId },
+			{ relations: ['follow'] },
+		);
+		*/
+		// TODO: do sub-query for ids
 		const user = await this.usersService.findOne(
 			{ id: currentUserId },
 			{ relations: ['follow'] },
 		);
-		if (!user) {
-			throw new UnauthorizedException(NOT_AUTHORIZED);
-		}
 		const followIds = user.follow.map((item) => item.id);
 		if (!followIds.length) {
 			return { articles: [], articlesCount: 0 };
 		}
-
 		const qBuilder = this.articlesRepository
 			.createQueryBuilder('articles')
 			.leftJoinAndSelect('articles.author', 'author')
 			.andWhere('author.id IN (:...followIds)', { followIds })
+			// .andWhere(`author.id IN (${followBuilder.getQuery()})`)
 			.skip(input.offset)
 			.take(input.limit)
 			.orderBy('articles.createdAt', 'DESC');

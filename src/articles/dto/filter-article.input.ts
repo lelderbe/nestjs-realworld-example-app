@@ -1,23 +1,7 @@
-import { Type } from 'class-transformer';
-import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
-import { LIMIT, MAX_LIMIT, OFFSET } from '@/app/constants';
+import { IsOptional, IsString } from 'class-validator';
+import { PaginateFilterInput } from '@/app/dto/paginate-filter.input';
 
-export class FilterArticleInput {
-	@IsOptional()
-	@Type(() => Number)
-	@IsInt()
-	@Min(0)
-	// @Transform(({ value }) => (value ? value : OFFSET))
-	readonly offset?: number = OFFSET;
-
-	@IsOptional()
-	@Type(() => Number)
-	@IsInt()
-	@Min(1)
-	@Max(MAX_LIMIT)
-	// @Transform(({ value }) => (value ? value : LIMIT))
-	readonly limit?: number = LIMIT;
-
+export class FilterArticleInput extends PaginateFilterInput {
 	@IsOptional()
 	@IsString()
 	readonly tag?: string;
