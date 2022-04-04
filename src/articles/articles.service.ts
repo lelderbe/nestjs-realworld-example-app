@@ -27,14 +27,15 @@ import {
 	COMMENT_NOT_FOUND,
 	NOT_AUTHORIZED,
 } from '@/app/constants';
+import { UsersFavoritesArticles } from './entities/users-favorites-articles.entity';
 
 @Injectable()
 export class ArticlesService {
 	constructor(
 		@InjectRepository(Article)
 		private readonly articlesRepository: Repository<Article>,
-		@InjectRepository(User)
-		private readonly usersRepository: Repository<User>,
+		@InjectRepository(UsersFavoritesArticles)
+		private readonly favoritesRepository: Repository<UsersFavoritesArticles>,
 		@InjectRepository(Comment)
 		private readonly commentsRepository: Repository<Comment>,
 		private readonly tagsService: TagsService,
@@ -163,11 +164,10 @@ export class ArticlesService {
 
 	async addArticleToFavorites(slug: string, currentUserId: string): Promise<Article> {
 		const article = await this.findArticleBySlug(slug);
-		const alreadyFavorited = await this.articlesRepository
-			.createQueryBuilder('articles')
-			.leftJoin('articles.favoritedBy', 'favoritedBy')
-			.where('favoritedBy.id = :currentUserId', { currentUserId })
-			.andWhere('articles.id = :id', { id: article.id })
+		const alreadyFavorited = await this.favoritesRepository
+			.createQueryBuilder('users_favorites_articles')
+			.where('users_favorites_articles.usersId = :currentUserId', { currentUserId })
+			.andWhere('users_favorites_articles.articlesId = :id', { id: article.id })
 			.getCount();
 
 		if (alreadyFavorited) {
@@ -177,13 +177,16 @@ export class ArticlesService {
 		const queryRunner = this.connection.createQueryRunner();
 		await queryRunner.connect();
 		await queryRunner.startTransaction();
+		const relation = this.favoritesRepository.create({
+			usersId: currentUserId,
+			articlesId: article.id,
+		});
 		try {
-			await queryRunner.query(`
-				INSERT INTO "users_favorites_articles" ("usersId", "articlesId")
-				VALUES ('${currentUserId}', '${article.id}');
-			`);
+			await queryRunner.manager.insert(UsersFavoritesArticles, relation);
 			article.favoritesCount++;
-			await queryRunner.manager.save(article);
+			await queryRunner.manager.update(Article, article.id, {
+				favoritesCount: article.favoritesCount,
+			});
 			await queryRunner.commitTransaction();
 		} catch (err) {
 			console.error(err);
@@ -191,6 +194,7 @@ export class ArticlesService {
 		} finally {
 			await queryRunner.release();
 		}
+
 		/*
 		// Alternative solution (need use transaction):
 

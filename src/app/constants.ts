@@ -11,3 +11,5 @@ export const ARTICLE_NOT_OWNER = 'You are not owner of this article';
 export const COMMENT_NOT_FOUND = 'Comment not found';
 export const EMAIL_IS_TAKEN = 'email is already taken';
 export const USERNAME_IS_TAKEN = 'username is already taken';
+export const PROFILE_NOT_FOUND = 'Profile not found';
+export const UNABLE_FOLLOW_SELF = 'unable to (un)follow yourself';

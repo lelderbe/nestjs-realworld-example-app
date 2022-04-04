@@ -1,5 +1,5 @@
 import { ProfileType } from './profile.type';
 
-export interface IProfileResponse {
+export interface ProfileResponse {
 	profile: ProfileType;
 }

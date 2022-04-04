@@ -7,93 +7,94 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '@/users/entities/user.entity';
-import { IProfileResponse } from './types/profile-response.interface';
+import { ProfileResponse } from './types/profile-response.interface';
 import { ProfileType } from './types/profile.type';
+import { NOT_AUTHORIZED, PROFILE_NOT_FOUND, UNABLE_FOLLOW_SELF } from '@/app/constants';
 
 @Injectable()
 export class ProfilesService {
 	constructor(
-		@InjectRepository(User) private readonly usersRepo: Repository<User>,
+		@InjectRepository(User) private readonly usersRepository: Repository<User>,
 	) {}
 
 	async getProfile(
 		profileUsername: string,
 		currentUserId: string,
 	): Promise<ProfileType> {
-		const user = await this.usersRepo.findOne({
-			username: profileUsername,
-		});
-		if (!user) {
-			throw new NotFoundException('Profile not found');
+		const profile = await this.usersRepository.findOne({ username: profileUsername });
+		if (!profile) {
+			throw new NotFoundException(PROFILE_NOT_FOUND);
 		}
 		let following = false;
-		const follower = await this.usersRepo.findOne(
-			{ id: currentUserId },
-			{ relations: ['follow'] },
-		);
-		if (follower && follower.follow.find((item) => item.id === user.id)) {
-			following = true;
+		if (currentUserId) {
+			const follower = await this.usersRepository.findOne(
+				{ id: currentUserId },
+				{ relations: ['follow'] },
+			);
+			if (follower && follower.follow.find((item) => item.id === profile.id)) {
+				following = true;
+			}
 		}
-		return { ...user, following };
+		return { ...profile, following };
 	}
 
 	async followProfile(
 		profileUsername: string,
 		currentUserId: string,
 	): Promise<ProfileType> {
-		const { user, follower } = await this.getProfileAndFollower(
+		const { profile, currentUser } = await this.getProfileAndCurrentUser(
 			profileUsername,
 			currentUserId,
 		);
-		if (!follower.follow.find((item) => item.id === user.id)) {
-			follower.follow.push(user);
-			await this.usersRepo.save(follower);
+		if (!currentUser.follow.find((item) => item.id === profile.id)) {
+			currentUser.follow.push(profile);
+			await this.usersRepository.save(currentUser);
 		}
-		return { ...user, following: true };
+		return { ...profile, following: true };
 	}
 
 	async unfollowProfile(
 		profileUsername: string,
 		currentUserId: string,
 	): Promise<ProfileType> {
-		const { user, follower } = await this.getProfileAndFollower(
+		const { profile, currentUser } = await this.getProfileAndCurrentUser(
 			profileUsername,
 			currentUserId,
 		);
-		const index = follower.follow.findIndex((item) => item.id === user.id);
+		const index = currentUser.follow.findIndex((item) => item.id === profile.id);
 		if (index !== -1) {
-			follower.follow.splice(index, 1);
-			await this.usersRepo.save(follower);
+			currentUser.follow.splice(index, 1);
+			await this.usersRepository.save(currentUser);
 		}
-		return { ...user, following: false };
+		return { ...profile, following: false };
 	}
 
-	private async getProfileAndFollower(
+	private async getProfileAndCurrentUser(
 		profileUsername: string,
 		currentUserId: string,
-	): Promise<{ user: User; follower: User }> {
-		const user = await this.usersRepo.findOne({
+	): Promise<{ profile: User; currentUser: User }> {
+		const profile = await this.usersRepository.findOne({
 			username: profileUsername,
 		});
-		if (!user) {
-			throw new NotFoundException('Profile not found');
+		if (!profile) {
+			throw new NotFoundException(PROFILE_NOT_FOUND);
 		}
-		if (user.id === currentUserId) {
+		if (profile.id === currentUserId) {
 			throw new UnprocessableEntityException({
-				errors: { follow: ['unable to (un)follow yourself'] },
+				errors: { follow: [UNABLE_FOLLOW_SELF] },
 			});
 		}
-		const follower = await this.usersRepo.findOne(
+		const currentUser = await this.usersRepository.findOne(
 			{ id: currentUserId },
 			{ relations: ['follow'] },
 		);
-		if (!follower) {
-			throw new UnauthorizedException('Unauthorized');
+		if (!currentUser) {
+			throw new UnauthorizedException(NOT_AUTHORIZED);
 		}
-		return { user: user, follower: follower };
+		return { profile, currentUser };
 	}
 
-	buildProfileResponse(profile: ProfileType): IProfileResponse {
+	buildProfileResponse(profile: ProfileType): ProfileResponse {
 		delete profile.email;
 		delete profile.favorites;
 		return {
