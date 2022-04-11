@@ -1,9 +1,4 @@
-import {
-	ForbiddenException,
-	Injectable,
-	NotFoundException,
-	UnauthorizedException,
-} from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import slugify from 'slugify';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Connection, Repository } from 'typeorm';
@@ -25,7 +20,6 @@ import {
 	ARTICLE_DOES_NOT_EXIST,
 	ARTICLE_NOT_OWNER,
 	COMMENT_NOT_FOUND,
-	NOT_AUTHORIZED,
 } from '@/app/constants';
 import { UsersFavoritesArticles } from './entities/users-favorites-articles.entity';
 
@@ -151,10 +145,15 @@ export class ArticlesService {
 		if (article.author.id !== currentUserId) {
 			throw new ForbiddenException(ARTICLE_NOT_OWNER);
 		}
-		Object.assign(article, input);
-		if (input.title) {
-			article.slug = this.getSlug(article.title);
+		if (input.title && input.title !== article.title) {
+			article.slug = this.getSlug(input.title);
 		}
+		if (article.tagList) {
+			article.tagList.forEach((title) => {
+				this.tagsService.createIfNotExists(title);
+			});
+		}
+		Object.assign(article, input);
 		return this.articlesRepository.save(article);
 	}
 
@@ -328,17 +327,12 @@ export class ArticlesService {
 		currentUserId: string,
 	): Promise<Comment> {
 		const article = await this.findArticleBySlug(slug);
-		// const user = await this.usersService.findOne(currentUserId);
 		const user = await this.usersService.findOne({ id: currentUserId });
-		if (!user) {
-			throw new UnauthorizedException(NOT_AUTHORIZED);
-		}
 		const comment = this.commentsRepository.create({
 			...input,
 			article,
 			author: user,
 		});
-		console.log('comment:', comment);
 		return this.commentsRepository.save(comment);
 	}
 

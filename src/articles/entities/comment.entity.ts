@@ -6,7 +6,7 @@ import { BaseEntity } from '@/app/entities/base.entity';
 @Entity('comments')
 export class Comment extends BaseEntity {
 	@PrimaryGeneratedColumn()
-	id: string;
+	id: number;
 
 	@Column()
 	body: string;
