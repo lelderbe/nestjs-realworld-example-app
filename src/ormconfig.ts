@@ -7,7 +7,6 @@ const config: ConnectionOptions = {
 	username: 'postgres',
 	password: process.env.POSTGRES_PASSWORD,
 	database: 'conduit',
-	// entities: ['dist/**/*.entity.js'],
 	entities: [__dirname + '/**/*.entity{.ts,.js}'],
 	synchronize: false,
 	logging: process.env.NODE_ENV === 'production' ? false : true,

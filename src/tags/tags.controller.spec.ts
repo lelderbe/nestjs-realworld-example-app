@@ -20,12 +20,12 @@ describe('TagsController', () => {
 		tagsService = module.get<TagsService>(TagsService);
 	});
 
-	it('should be defined', () => {
+	it('is defined', () => {
 		expect(tagsController).toBeDefined();
 	});
 
 	describe('findAll()', () => {
-		it('should return an object TagsResponse of tags', async () => {
+		it('return an object TagsResponse with array of tags when tags exist', async () => {
 			const mockTags: Tag[] = [
 				{ id: '7667cb47-9e1f-48aa-ad01-10e86921bf6d', title: 'tag1' },
 				{ id: '40ce66ea-77a5-492e-a944-a1b0d8a28773', title: 'tag2' },
@@ -36,6 +36,18 @@ describe('TagsController', () => {
 			);
 
 			const tags = await tagsController.findAll();
+
+			expect(tags).toEqual(expected);
+		});
+		it('return an object TagsResponse with empty array when no tags', async () => {
+			const mockTags: Tag[] = [];
+			const expected: TagsResponse = { tags: [] };
+			jest.spyOn(tagsService, 'findAll').mockImplementation(() =>
+				Promise.resolve(mockTags),
+			);
+
+			const tags = await tagsController.findAll();
+
 			expect(tags).toEqual(expected);
 		});
 	});

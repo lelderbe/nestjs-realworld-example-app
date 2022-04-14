@@ -6,10 +6,10 @@ import { Repository } from 'typeorm';
 
 type MockRepository<T = any> = Partial<Record<keyof Repository<T>, jest.Mock>>;
 const createMockRepository = <T = any>(): MockRepository<T> => ({
-	find: jest.fn(),
-	findOne: jest.fn(),
-	create: jest.fn(),
-	save: jest.fn(),
+	create: jest.fn(() => ({})),
+	find: jest.fn(() => []),
+	findOne: jest.fn(() => ({})),
+	save: jest.fn(() => ({})),
 });
 
 describe('TagsService', () => {
@@ -22,7 +22,7 @@ describe('TagsService', () => {
 				TagsService,
 				{
 					provide: getRepositoryToken(Tag),
-					useValue: createMockRepository(),
+					useValue: createMockRepository<Tag>(),
 				},
 			],
 		}).compile();
@@ -31,66 +31,57 @@ describe('TagsService', () => {
 		tagsRepository = module.get<MockRepository>(getRepositoryToken(Tag));
 	});
 
-	it('should be defined', () => {
+	it('is defined', () => {
 		expect(tagsService).toBeDefined();
 	});
 
 	describe('findAll()', () => {
-		it('should return the Tag[]', async () => {
+		it('return an array of tags', async () => {
 			const expected = [];
-			tagsRepository.find.mockResolvedValue(expected);
 
 			const tags = await tagsService.findAll();
+
 			expect(tags).toEqual(expected);
 		});
 	});
 
 	describe('findOne()', () => {
-		describe('when tag with title exists', () => {
-			it('should return the Tag object', async () => {
-				const tagTitle = 'dragons';
-				const expectedTag = {};
-				// tagsRepository.findOne.mockReturnValue(expectedTag);
-				tagsRepository.findOne.mockResolvedValue(expectedTag);
+		it('return the Tag object when tag with title exists', async () => {
+			const tagTitle = '';
+			const expected = {};
 
-				const tag = await tagsService.findOne(tagTitle);
-				expect(tag).toEqual(expectedTag);
-			});
+			const tag = await tagsService.findOne(tagTitle);
+
+			expect(tag).toEqual(expected);
 		});
-		describe('otherwise', () => {
-			it('should return undefined', async () => {
-				const tagTitle = 'dragons';
-				const expectedTag = undefined;
-				tagsRepository.findOne.mockResolvedValue(expectedTag);
+		it("return undefined when tag with title doesn't exists", async () => {
+			const tagTitle = '';
+			const expected = undefined;
+			tagsRepository.findOne.mockResolvedValue(expected);
 
-				const tag = await tagsService.findOne(tagTitle);
-				expect(tag).toEqual(expectedTag);
-			});
+			const tag = await tagsService.findOne(tagTitle);
+
+			expect(tag).toEqual(expected);
 		});
 	});
 
 	describe('createIfNotExists()', () => {
-		describe('when tag with title exists', () => {
-			it('should return the Tag object', async () => {
-				const tagTitle = 'dragons';
-				const expectedTag = {};
-				tagsRepository.findOne.mockResolvedValue(expectedTag);
+		it('return the Tag object when tag with title exists', async () => {
+			const tagTitle = '';
+			const expected = {};
 
-				const tag = await tagsService.createIfNotExists(tagTitle);
-				expect(tag).toEqual(expectedTag);
-			});
+			const tag = await tagsService.createIfNotExists(tagTitle);
+
+			expect(tag).toEqual(expected);
 		});
-		describe('otherwise', () => {
-			it('should create and return Tag object', async () => {
-				const tagTitle = 'dragons';
-				const expectedTag = {};
-				tagsRepository.findOne.mockResolvedValue(undefined);
-				tagsRepository.create.mockResolvedValue(expectedTag);
-				tagsRepository.save.mockResolvedValue(expectedTag);
+		it("create and return new Tag object when tag with title doesn't exists", async () => {
+			const tagTitle = '';
+			const expected = {};
+			tagsRepository.findOne.mockResolvedValue(undefined);
 
-				const tag = await tagsService.createIfNotExists(tagTitle);
-				expect(tag).toEqual(expectedTag);
-			});
+			const tag = await tagsService.createIfNotExists(tagTitle);
+
+			expect(tag).toEqual(expected);
 		});
 	});
 });

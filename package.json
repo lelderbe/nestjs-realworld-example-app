@@ -86,7 +86,10 @@
 		},
 		"collectCoverageFrom": [
 			"**/*.(t|j)s",
-			"!**/*.module.(t|j)s"
+			"!**/*.module.(t|j)s",
+			"!**/*.entity.(t|j)s",
+			"!ormconfig.ts",
+			"!ormseedconfig.ts"
 		],
 		"coverageDirectory": "../coverage",
 		"testEnvironment": "node"
